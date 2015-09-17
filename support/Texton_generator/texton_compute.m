@@ -20,9 +20,11 @@ function [texton,texton_map,filters,f_res,texton_diff]=texton_compute(im,k,f_typ
 %       f_res: filter responses
 %       texton_diff: distance from the texton of each pixel to its central
 %----------------------------------------------------------
+    
     texton =0;
     texton_map=0;
     texton_diff=0;
+    computing_platform = 1; %0: MATLAB, 1: OpenCV
     if (nargin<3)
         f_type = 'mr';
         g_method = 'kmean';
@@ -55,11 +57,19 @@ function [texton,texton_map,filters,f_res,texton_diff]=texton_compute(im,k,f_typ
             if disp_en
                 disp('Filtering the images...');
             end
-
+            
             for filter_idx=1:nfilters
-                %disp(['Working at scale... ' num2str(filter_idx)]);
-                f_res(:,:,filter_idx)=imfilter(im,filters(:,:,filter_idx),'same','circular');
+                disp(['Working at scale... ' num2str(filter_idx)]);
+                
+                if (computing_platform==0)
+                    %Filterting with MATLAB built-in instruction
+                    f_res(:,:,filter_idx)=imfilter(im,filters(:,:,filter_idx),'same','circular');
+                else
+                    %Filtering with OpenCV instruction - 3x faster
+                    f_res(:,:,filter_idx)=filter2D(im,filters(:,:,filter_idx));
+                end
             end
+            
     else
         %Compute the filtering for 10k x 10 k images goes here....
     end

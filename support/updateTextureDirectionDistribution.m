@@ -20,8 +20,10 @@ function updateTextureDirectionDistribution(filenames,labelpath,textonpath,histp
     nrows = 2048;
     ncols = 2048;
     ndir = 8; 
+    ngrades = size(filenames,1);
+    
     diameter = 40; %Radius of the area in which we compute the histogram of direction...
-    for classidx=1:4 %Go through different classes
+    for classidx=1:ngrades %Go through different classes
        nsamples = (length(filenames{classidx,1})); %Get the number of samples in each class
        for sampleIdx=1:nsamples
             waitbar(sampleIdx/nsamples,h,'Progress...')

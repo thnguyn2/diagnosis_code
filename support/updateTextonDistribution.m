@@ -10,21 +10,21 @@ function updateTextonDistribution(filenames,labelpath,textonpath)
     addpath(labelpath);
     addpath(textonpath)
     addpath('C:\Users\thnguyn2\Dropbox\current working code\Texton_generator');
-    ntextons = 51;
-
+    ntextons = 50;
+    retrain = 0;
     h = waitbar(0,'Calculating textons...');
-    %radius = 20;%The window size is 32x4 in the real image, (about 128/14 approx 9 microns^2 window)
+    radius = 60;%In the 3072 x 3072 pixels image
    
-    radius = 40;%The window size is 32x4 in the real image, (about 128/14 approx 9 microns^2 window)
+    nrows = 3072;
+    ncols = 3072;
+ 
+    npixels = nrows*ncols;
     
-    npixels = 2048^2;
     pixelidx=[1:npixels];
     pixelidx=pixelidx(:); %Line up current coordinates of the pixels
-    x_offset = [-(radius/2) (radius/2) (radius/2) -(radius/2)];
-    y_offset = [-(radius/2) -(radius/2) (radius/2) (radius/2)];
-    nrows = 2048;
-    ncols = 2048;
-    [y_coord,x_coord]=ind2sub([2048 2048], pixelidx); %Row and column indices of current pixels
+    x_offset = [-radius radius radius -radius];
+    y_offset = [-radius -radius radius radius];
+    [y_coord,x_coord]=ind2sub([nrows ncols], pixelidx); %Row and column indices of current pixels
     y_coord = y_coord(:);
     x_coord = x_coord(:);
     diff_coord = x_offset*nrows+y_offset; %Difference to the center pixel
@@ -45,12 +45,16 @@ function updateTextonDistribution(filenames,labelpath,textonpath)
     %Compute the number of neighbors for each pixels
     nneighbors = (neigh_x(:,2)-neigh_x(:,1)+1).*(neigh_y(:,3)-neigh_y(:,2)+1);
     %% Computing textons for each images..... 
-    for classidx=1:4 %Go through different classes
-       nsamples = (length(filenames{classidx,1})); %Get the number of samples in each class
-       for sampleIdx=1:nsamples
+    %ngrades = size(filenames,1);
+    nsamples = size(filenames,1);
+    for sampleIdx=1:nsamples
+    %for classidx=1:ngrades %Go through different classes
+    %   nsamples = (length(filenames{classidx,1})); %Get the number of samples in each class
+    %   for sampleIdx=1:nsamples
             waitbar(sampleIdx/nsamples,h,'Progress...')
           
-            cur_file_name = filenames{classidx,1}{sampleIdx,1};
+           % cur_file_name = filenames{classidx,1}{sampleIdx,1};
+            cur_file_name = filenames{sampleIdx,1};
             %Check to see if the label file exist
             dot_pos = strfind(cur_file_name,'.'); %Get the position of the dot
             slash_pos = strfind(cur_file_name,'\');
@@ -59,64 +63,63 @@ function updateTextonDistribution(filenames,labelpath,textonpath)
             texton_hist_file_name =  strcat(label_name,'_texton_hist_',num2str(radius),'.mat');
             
             disp(['Processing image: ' label_name ' ...']);
-            lbl_file_name = strcat(label_name,'.mat');
-
-            if (~exist(strcat(textonpath,texton_hist_file_name)))
-                load(strcat(textonpath,texton_idx_file_name),'new_text_map','ovr_posterior');
-                load(strcat(labelpath,lbl_file_name));
-                %Downsample the images to match the size
-                lblimnew = imresize(lblim,[2048 2048],'nearest');
-               
-                lblim = lblimnew;%Resize the image to match the same size of the label
- 
+            %lbl_file_name = strcat(label_name,'_resized.mat');
+            computingPlatform = 0;
+            load(strcat(textonpath,texton_idx_file_name),'new_text_map');
+            writeTIFF(new_text_map,strcat(textonpath,strcat(label_name,'_texton_index_map.tif')))
+            if ((~exist(strcat(textonpath,texton_hist_file_name)))||(retrain==1))
+                
+                %Downsample the texton index image and the lbl image to
+                %save some space
+                new_text_map = imresize(new_text_map,[nrows ncols],'nearest');
                 %Convert into the pixel-wise distribution
                 histim = zeros(nrows,ncols,ntextons);
-                intIm = zeros(nrows,ncols,ntextons);
                 disp('Calculating integral image....');
+                hist_filter = fspecial('gaussian',[round(2*radius) round(2*radius)],radius/5);
+                tic;
+                
                 for textonIdx=1:ntextons %Go through every texton
-                    idxIm = zeros(nrows,ncols);
-                    idx = find(new_text_map==textonIdx);
-                    idxIm(idx)=1;
-                    idxIm = integralImage(idxIm);
-                    intIm(:,:,textonIdx) = idxIm(1:end-1,1:end-1);
-                end
-
-                disp('Calculating histgram of texton....');
-                %Now, go through every texton again, for each texton, compute
-                %the distribution pixel wise...
-                for textonIdx = 1:ntextons
-                    curim = zeros(nrows,ncols);
-                    curintIm = intIm(:,:,textonIdx);
-                    curim(pixelidx) = curintIm(neigh_coord(:,3))+curintIm(neigh_coord(:,1))-...
+                   idxIm = zeros(nrows,ncols);
+                   idx = find(new_text_map==textonIdx);
+                   idxIm(idx)=1;
+                   if (computingPlatform==0)
+                        idxIm = imfilter(idxIm,hist_filter,'same');
+                   else
+                   end
+                   idxIm = integralImage(idxIm);
+                   idxIm = cast(idxIm(1:end-1,1:end-1),'single');
+                   curim = zeros(nrows,ncols);
+                   curintIm = idxIm;
+                   curim(pixelidx) = curintIm(neigh_coord(:,3))+curintIm(neigh_coord(:,1))-...
                         curintIm(neigh_coord(:,4))-curintIm(neigh_coord(:,2));
                     %Normalize by how many pixels in the neighborhood
-                    curim(pixelidx)= curim(pixelidx)./nneighbors;
-                    histim(:,:,textonIdx)=curim;
+                   %curim(pixelidx)= curim(pixelidx)./nneighbors;
+                   histim(:,:,textonIdx)=cast(curim,'uint16');
                 end
-                save(strcat(textonpath,texton_hist_file_name),'histim','lblim','-v7.3');
+                save(strcat(textonpath,texton_hist_file_name),'histim','-v7.3');
+              
+%                 figure(1);
+%                 imagesc(lblim);
+%                 title('Label map');
+%                 drawnow;
+
+%                 for textonIdx=1:20:20
+%                      figure(textonIdx+1);
+%                      imagesc(histim(:,:,textonIdx));
+%                      colorbar;
+%                 end
+                timeElap = toc;
+                disp(['Time elapse: ' num2str(timeElap)]);
+               
             else
-                load(strcat(textonpath,texton_hist_file_name),'histim','lblim');
+               % load(strcat(textonpath,texton_hist_file_name),'histim','lblim');
                 
             end
-            load(strcat(textonpath,texton_idx_file_name),'ovr_posterior');
-            figure(1);
-            imagesc(lblim);
-            title('Label map');
-            drawnow;
-            
-            for textonIdx=1:17:ntextons
-                 figure(textonIdx+1);
-                 imagesc(histim(:,:,textonIdx));
-                 colorbar;
-            end
-            figure(ntextons+1);
-            imagesc(ovr_posterior);
-            colorbar;
-            title('Posterior');          
+          
+           
             
             
-            
-       end
+     %  end
     end
 
     close(h);

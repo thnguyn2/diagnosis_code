@@ -1,0 +1,6 @@
+-The diagnosis of the patient is done by taking 7 biopsies.
+-The TMA2B set contains cores from several patients, not the biopsies. Biopsies are much bigger than cores.
+-The diagnosis we have is based on patients, it is not the diagnosis based on individual cores. Therefore, a core with grade 3 can belongs to final diagnosis of
+2+2 to 5+3. However, we expect that the data to be representative enough....
+-Shamira: Dr. Tangela assign the grades for the cores and circles her the grades of different glands insides it. the 80% accuracy is done based on individual glands.
+Within a core, glands of different grades may get mixed up. 

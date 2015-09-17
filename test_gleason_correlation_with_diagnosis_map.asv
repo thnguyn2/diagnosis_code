@@ -1,0 +1,114 @@
+function demo
+    clc;
+    clear all;
+    close all;
+    datapath = 'G:\TMA_cores_and_diagnosis\';
+    texton_dir=strcat(datapath,'texdir\');
+    label_dir=strcat(datapath,'label\');
+    core_groundtruth_dir = strcat(datapath,'diagnosis_of_vicky\');%This is the groundtruth for the core
+    addpath('C:\Users\Tan\Dropbox\current_working_code\cancer_diagnosis\support')
+    addpath(strcat(cd(cd('..')),'\support'));
+    [filenames,glandnames,classlist,alltiffilelist]=findFileNameFromROIs(datapath);
+    for fileidx = 1:length(alltiffilelist)
+        %cur_file_name = alltiffilelist{fileidx};
+        cur_file_name = 'G:\TMA_cores_and_diagnosis\d4+4\D11.tif';
+        dot_pos = strfind(cur_file_name,'.'); %Get the position of the dot
+        slash_pos = strfind(cur_file_name,'\');
+        label_name = cur_file_name(slash_pos(end)+1:dot_pos(1)-1);
+        disp(['Working on ' label_name ', Sample Idx: ' num2str(fileidx)])
+        seg_im_name_bf1 = strcat(cur_file_name(1:end-4),'_seg_ws90','_fuzzy_lm.tif');  
+        phaseim = imread(strcat(cur_file_name(1:end-4),'_small.tif'));%Downsampled image  
+        labelim = imread(strcat(cur_file_name(1:end-4),'_seg_multi_res_3072_strict_hf.tif'));
+        %Load the fuzzy map
+        fuzzy_map = imread(seg_im_name_bf1);
+        coregt_map_file_name = strcat(core_groundtruth_dir,label_name,'_roi_diag.tif');
+        if (exist(coregt_map_file_name))
+            coregt_map = imread(coregt_map_file_name);
+            figure(1);
+            subplot(131);
+            imagesc(fuzzy_map);colorbar
+            subplot(132);
+            imagesc(coregt_map);colorbar
+            subplot(133);
+            imagesc(labelim);colorbar
+            
+            %Expand the region with background. These regions are those
+            %with small values of gradient magnitude
+            [gx,gy]=gradient(cast(phaseim,'single'));
+            gmag2 = gx.^2+gy.^2;
+            
+            
+            drawnow
+            create_crop_imagesc(3,coregt_map,phaseim,fuzzy_map,labelim,label_name,datapath);%Create all the image of grade 3 cores
+            create_crop_imagesc(4,coregt_map,phaseim,fuzzy_map,labelim,label_name,datapath);%Grade 4 case
+            create_crop_imagesc(5,coregt_map,phaseim,fuzzy_map,labelim,label_name,datapath);%Grade 5 case
+            create_crop_imagesc(-1,coregt_map,phaseim,fuzzy_map,labelim,label_name,datapath);%Normal case
+            
+      
+        else
+            disp(['Core ' label_name ' ground truth does not exist...'])
+        end
+
+    end
+end
+
+function [tempphaseim,tempfuzzymap]=create_crop_imagesc(class,coregt_map,phaseim,fuzzy_map,labelim,label_name,datapath)
+     g3folder = strcat(datapath,'diagnosis_of_vicky\g3\');
+     g4folder = strcat(datapath,'diagnosis_of_vicky\g4\');
+     g5folder = strcat(datapath,'diagnosis_of_vicky\g5\');
+     nmfolder = strcat(datapath,'diagnosis_of_vicky\nm\');
+     
+     bw = (coregt_map==class);
+     if (sum(bw(:))>0)
+          regions = regionprops(bw,'PixelIdxList'); %Get all the grade 3 regions
+          areas = regionprops(bw,'Area');
+          for regionidx=1:length(regions)
+               curidx1 = regions(regionidx).PixelIdxList; 
+               curarea = areas(regionidx).Area;
+               if (curarea>=1000)
+                   [currowidx,curcolidx]=ind2sub(size(fuzzy_map),curidx1);
+                   r1 = min(currowidx);
+                   c1 = min(curcolidx);
+                   r2 = max(currowidx);
+                   c2 = max(curcolidx);
+                   bbnrows = r2-r1+1;
+                   bbncols = c2-c1+1;
+                   labelmap = zeros(bbnrows,bbncols);
+                   tempfuzzymap = (-1)*ones(bbnrows,bbncols);
+                   currowidx = currowidx+1-r1;
+                   curcolidx = curcolidx+1-c1;
+                   curidx = currowidx + (curcolidx-1)*bbnrows;
+                   tempfuzzymap(curidx)=fuzzy_map(curidx1);
+                   tempphaseim = zeros(bbnrows,bbncols);
+                   tempphaseim(curidx)=phaseim(curidx1);
+                   labelmap(curidx) = labelim(curidx1);
+                   figure(2);
+                   imagesc(tempfuzzymap);
+                   figure(3);
+                   imagesc(tempphaseim);
+                   figure(4);
+                   imagesc(labelmap);
+                   if (class==4)
+                         writeTIFF(tempfuzzymap,strcat(g4folder,label_name,'_',num2str(regionidx),'_g4.tif'));
+                         writeTIFF(tempphaseim,strcat(g4folder,label_name,'_small_',num2str(regionidx),'_g4.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(g4folder,label_name,'_lbl_',num2str(regionidx),'_g4.tif'));%Save the phase image
+                   elseif (class==3)
+                         writeTIFF(tempfuzzymap,strcat(g3folder,label_name,'_',num2str(regionidx),'_g3.tif'));
+                         writeTIFF(tempphaseim,strcat(g3folder,label_name,'_small_',num2str(regionidx),'_g3.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(g3folder,label_name,'_lbl_',num2str(regionidx),'_g3.tif'));%Save the phase image
+                   elseif (class==5)
+                         writeTIFF(tempfuzzymap,strcat(g5folder,label_name,'_',num2str(regionidx),'_g5.tif'));
+                         writeTIFF(tempphaseim,strcat(g5folder,label_name,'_small_',num2str(regionidx),'_g5.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(g5folder,label_name,'_lbl_',num2str(regionidx),'_g5.tif'));%Save the phase image
+                   elseif (class==-1.0)
+                         writeTIFF(tempfuzzymap,strcat(nmfolder,label_name,'_',num2str(regionidx),'_nm.tif'));
+                         writeTIFF(tempphaseim,strcat(nmfolder,label_name,'_small_',num2str(regionidx),'_nm.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(nmfolder,label_name,'_lbl_',num2str(regionidx),'_nm.tif'));%Save the phase image
+                   end
+               end
+          end
+     else
+         tempphaseim=0;
+         tempfuzzymap=0;
+      end
+end

@@ -4,14 +4,18 @@ function demo
     close all;
     datapath = 'F:\QPI_data_fullset\';
     textpath = strcat(datapath,'textdir\');
+    addpath(cd(cd('..')));
     svm_dir=strcat(datapath,'svm\ws20\');
+    label_dir = strcat(datapath,'\metric&label\');
     load('texton_data.mat'); %Load the texton data
     ntextons=size(texton,1); %Get number of textons
     addpath(textpath); %Add the texton path      
-    addpath('C:\Users\Nikon\Dropbox\current working code\Texton_generator');
-    addpath('C:\Users\thnguyn2\Dropbox\current working code\Bilateral filtering'); %Add the path for bilateral filtering
-    addpath('C:\Users\Nikon\Dropbox\current working code\Bilateral filtering');
- 
+    addpath(strcat(cd(cd('..\..')),'\Texton_generator'));
+    addpath(strcat(cd(cd('..\..')),'\Bilateral filtering'));
+    addpath(strcat(cd(cd('..')),'\trainedclassifier'));
+    addpath(strcat(cd(cd('..')),'\support'));
+    load 'svmstruct_ws40.mat';
+   
     %Look for all file names
     filenames =  dir(strcat(datapath,'*.tif'));
     nfiles = length(filenames);
@@ -22,6 +26,7 @@ function demo
     
     h = waitbar(0,'Filter response calc process...');
     for fileIdx = 1:nfiles
+        tic;
         cur_file_name = filelist{fileIdx,1};
         waitbar(fileIdx/nfiles,h,'Progress...')
         dot_pos = strfind(cur_file_name,'.'); %Get the position of the dot
@@ -193,7 +198,7 @@ function demo
         npixels = nrows*ncols;
         lblim = imresize(lblim,[nrows ncols],'nearest');
         %Downsample the histogram of texton to the newsize
-        load 'svmstruct_ws40.mat'
+        
         svm_file_name = strcat(label_name,'_svm_200k_ws40.mat');
         if (~exist(strcat(svm_dir,svm_file_name)))
             fim = (-3)*ones(nrows,ncols);
@@ -276,7 +281,7 @@ function demo
         load(strcat(textpath,texton_hist_file_name),'histim');
         disp('Computing functional distance on 1024x1024 image')
         svm_file_name = strcat(label_name,'_svm_200k_ws40.mat');
-       % if (~exist(strcat(svm_dir,svm_file_name)))
+        if (~exist(strcat(svm_dir,svm_file_name)))
             fim_1024 = (-3)*ones(nrows,ncols);
             %Load the value of a classifier to compute
             shiftval = svmtruct.ScaleData.shift;
@@ -334,9 +339,9 @@ function demo
             newlblim(lumenidx)=0;
             [newlblim] = procseg(newlblim); %Another processing step to remove sall are
             save(strcat(svm_dir,svm_file_name),'fim_1024','f','newlblim','-append');
-        %else
-        %    load(strcat(svm_dir,svm_file_name),'fim_1024','f','newlblim');
-        %end 
+        else
+            load(strcat(svm_dir,svm_file_name),'fim_1024','f','newlblim');
+        end 
         clear histim;
         figure(4);
         imagesc(newlblim);
@@ -347,52 +352,123 @@ function demo
         figure(3);
         imagesc(fim_1024);
         
-%         %Do bilateral filtering then save the resuls of bilateral filtering
-%         load(strcat(svm_dir,svm_file_name),'fim','f','newlblim');
-%         
-%         idx = find(fim~=(-3));
-%         fimbifilter = bifilter(fim,10,0.5*std(fim(idx)));
-%         %Save the bilateral filterin results
-%         save(strcat(svm_dir,svm_file_name),'fimbifilter','-append');
-%         figure(5);
-%         imagesc([fim fimbifilter]);
-%         title('Original - Bilateral results...');
-%         newlblim = zeros(size(lblim));
-%         %Create a label map for stroma...Set it to a relatively
-%         %high threshold so that all stroma is detected at the price
-%         %of more error to gland...
-%         thresh =-0.029;
-%         candidateidx = find(lblim~=0);
-%         candidatelabel = (-1)*ones(size(candidateidx));
-%         glandidx = find(fimbifilter(candidateidx)>thresh);
-%         candidatelabel(glandidx)=1; %Assign gland pixels
-%         newlblim(candidateidx)=candidatelabel;
-%         lumenidx = find(newlblim==0); %Assign lumen pixels
-%         newlblim(lumenidx)=-1;
-%         %Clean the gland map a little bit
-%         newlblim = im2bw(newlblim,0);
-%         %Remove very small pores...
-%         newlbliminv = 1-newlblim;
-%         minporesize = 5;
-%         newlbliminv = bwareaopen(newlbliminv,minporesize,8); %Remove very small pores less...
-%         glandnoholes = 1-newlbliminv;
-%         %Slightly connect regions that are separated
-%         se = strel('disk',1);
-%         glandnoholes = imclose(glandnoholes,se);
-%         glandnoholes = bwareaopen(glandnoholes,5,8);
-%         newlblim = cast(glandnoholes,'single')*2.0-1.0;
-%         newlblim(lumenidx)=0;
-%         newlblimbf = newlblim;
-%         save(strcat(svm_dir,svm_file_name),'newlblimbf','newlblimbf','-append');
-%         load(strcat(svm_dir,svm_file_name),'newlblim');
-%         figure(4);
-%         imagesc([newlblim newlblimbf]);
-%         title('label (wobf) - wbf')
+        %Do bilateral filtering then save the resuls of bilateral filtering
+        %on 512 x 512 image
+        load(strcat(svm_dir,svm_file_name),'fim','f','newlblim','fimbifilter','newlblimbf');
+        if (~exist('fimbifilter'))
+              idx = find(fim~=(-3));
+              fimbifilter = bifilter(fim,10,0.5*std(fim(idx)));
+              %Save the bilateral filterin results
+            save(strcat(svm_dir,svm_file_name),'fimbifilter','-append');
+        end
         
+        figure(5);
+        imagesc([fim fimbifilter]);
+        title('Original - Bilateral results...');
+        newlblim = zeros(size(lblim));
+      
+        
+        if (~exist('newlblimbf'))
+            %Create a label map for stroma...Set it to a relatively
+            %high threshold so that all stroma is detected at the price
+            %of more error to gland...
+            thresh =-0.029;
+            candidateidx = find(lblim~=0);
+            candidatelabel = (-1)*ones(size(candidateidx));
+            glandidx = find(fimbifilter(candidateidx)>thresh);
+            candidatelabel(glandidx)=1; %Assign gland pixels
+            newlblim(candidateidx)=candidatelabel;
+            lumenidx = find(newlblim==0); %Assign lumen pixels
+            newlblim(lumenidx)=-1;
+            %Clean the gland map a little bit
+            newlblim = im2bw(newlblim,0);
+            %Remove very small pores...
+            newlbliminv = 1-newlblim;
+            minporesize = 5;
+            newlbliminv = bwareaopen(newlbliminv,minporesize,8); %Remove very small pores less...
+            glandnoholes = 1-newlbliminv;
+            %Slightly connect regions that are separated
+            se = strel('disk',1);
+            glandnoholes = imclose(glandnoholes,se);
+            glandnoholes = bwareaopen(glandnoholes,5,8);
+            newlblim = cast(glandnoholes,'single')*2.0-1.0;
+            newlblim(lumenidx)=0;
+            newlblimbf = newlblim;
+            save(strcat(svm_dir,svm_file_name),'newlblimbf','-append');
+        else
+                 load(strcat(svm_dir,svm_file_name),'newlblim','newlblimbf');
+        end
+        figure(4);
+        imagesc([newlblimbf]);
+        axis on;
+        title('label with BF filtering results');
+        clear newlblimbf;
+        clear fimbifilter; %Prepare for the next image
+        %-------------------------------------------------------------------
+        %Do bilateral filtering then save the resuls of bilateral filtering
+        %on 1024 x 1024 image
+        load(strcat(svm_dir,svm_file_name),'fim_1024','fimbifilter_1024','newlblimbf_1024');
+        %if (~exist('fimbifilter_1024'))
+              idx = find(fim_1024~=(-3));
+              fimbifilter_1024 = bifilter(fim_1024,10,0.5*std(fim_1024(idx)));
+              %Save the bilateral filterin results
+            save(strcat(svm_dir,svm_file_name),'fimbifilter_1024','-append');
+        %end
+        
+        figure(5);
+        imagesc([fim_1024 fimbifilter_1024]);
+        title('Original - Bilateral results...');
+        newlblim_1024 = zeros(size(lblim));
+        
+        
+        %if (~exist('newlblimbf_1024'))
+            %Create a label map for stroma...Set it to a relatively
+            %high threshold so that all stroma is detected at the price
+            %of more error to gland...
+            thresh =-0.029;
+            candidateidx = find(lblim~=0);
+            candidatelabel = (-1)*ones(size(candidateidx));
+            glandidx = find(fimbifilter_1024(candidateidx)>thresh);
+            candidatelabel(glandidx)=1; %Assign gland pixels
+            newlblim_1024(candidateidx)=candidatelabel;
+            lumenidx = find(newlblim_1024==0); %Assign lumen pixels
+            newlblim_1024(lumenidx)=-1;
+            %Clean the gland map a little bit
+            newlblim_1024 = im2bw(newlblim_1024,0);
+            %Remove very small pores...
+            newlbliminv_1024 = 1-newlblim_1024;
+            minporesize = 5;
+            newlbliminv_1024 = bwareaopen(newlbliminv_1024,minporesize,8); %Remove very small pores less...
+            glandnoholes = 1-newlbliminv_1024;
+            %Slightly connect regions that are separated
+            se = strel('disk',1);
+            glandnoholes = imclose(glandnoholes,se);
+            glandnoholes = bwareaopen(glandnoholes,5,8);
+            newlblim_1024 = cast(glandnoholes,'single')*2.0-1.0;
+            newlblim_1024(lumenidx)=0;
+            newlblimbf_1024 = newlblim_1024;
+            save(strcat(svm_dir,svm_file_name),'newlblimbf_1024','-append');
+            %Save the label image as well as the bilaterial filtering in an
+            %image file
+            writeTIFF(fimbifilter_1024,strcat(label_dir,label_name,'_met.tif'));
+            writeTIFF(newlblimbf_1024,strcat(label_dir,label_name,'_lbl.tif'));
+         
+        %else
+             load(strcat(svm_dir,svm_file_name),'newlblim_1024','newlblimbf');
+        %end
+        figure(4);
+        imagesc([newlblimbf_1024]);
+        axis on;
+        title('label with BF filtering results')
+        clear newlblimbf_1024;
+        clear fimbifilter_1024;
+        avgTime = toc;
+        disp(['Time spent for 1 sample: ' num2str(avgTime)]);
     end
     close(h);
     
 end
+
 
 
 

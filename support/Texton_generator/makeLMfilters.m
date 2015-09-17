@@ -4,8 +4,8 @@ function F=makeLMfilters
 % conv2, i.e. responses(:,:,i)=conv2(I,F(:,:,i),'valid'), or use the
 % Fourier transform.
 
-  SUP=49;                 % Support of the largest filter (must be odd)
-  SCALEX=sqrt(2).^[1:5];  % Sigma_{x} for the oriented filters
+  SUP=round((49*1.5/2))*2+1;                 % Support of the largest filter (must be odd)
+  SCALEX=(sqrt(2).^[1:5])*1.5;  % Sigma_{x} for the oriented filters
   NORIENT=8;              % Number of orientations
 
   NROTINV=12;
