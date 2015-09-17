@@ -7,15 +7,15 @@ function demo
     clc;
     clear all;
     %close all;
-    datafolder = 'H:\TMA_cores_and_diagnosis\diagnosis_of_vicky\';
-    addpath('..\support');
-    g3folder =strcat(datafolder,'g3\');
-    g4folder =strcat(datafolder,'g4\');
-    nmfolder = strcat(datafolder,'nm\');
-    hgpfolder =strcat(datafolder,'hgp\');
-    bphfolder = strcat(datafolder,'bph\');
+    datafolder = '/media/thnguyn2/Elements/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    addpath('../support');
+    g3folder =strcat(datafolder,'g3/');
+    g4folder =strcat(datafolder,'g4/');
+    nmfolder = strcat(datafolder,'nm/');
+    hgpfolder =strcat(datafolder,'hgp/');
+    bphfolder = strcat(datafolder,'bph/');
 
-    texton_hist_folder = 'H:\TMA_cores_and_diagnosis\texdir\'
+    texton_hist_folder = '/media/thnguyn2/Elements/TMA_cores_and_diagnosis/texdir/'
     g3files = dir(strcat(g3folder,'*_lbl_*g3.tif'));
     g4files = dir(strcat(g4folder,'*_lbl_*g4.tif'));
     nmfiles = dir(strcat(nmfolder,'*_lbl_*nm.tif'));

@@ -7,22 +7,41 @@
     clc;
     %clear all;
     close all;
-    datafolder = 'E:\TMA_cores_and_diagnosis\diagnosis_of_vicky\';
-    addpath('..\support');
-    g3folder =strcat(datafolder,'g3\');
-    nmfolder = strcat(datafolder,'nm\');
+    datafolder = '/media/thnguyn2/Elements/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    addpath('../support');
+    g3folder =strcat(datafolder,'g3/');
+    nmfolder = strcat(datafolder,'nm/');
+    g4folder =strcat(datafolder,'g4/');
+    bphfolder = strcat(datafolder,'bph/');
+    hgpfolder = strcat(datafolder,'hgp/');
+  
     g3files = dir(strcat(g3folder,'*_lbl_*g3.tif'));
+    g4files = dir(strcat(g4folder,'*_lbl_*g4.tif'));
+   
+   
     nmfiles = dir(strcat(nmfolder,'*_lbl_*nm.tif'));
+    hgpfiles = dir(strcat(hgpfolder,'*_lbl_*hgp.tif'));
+    bphfiles = dir(strcat(bphfolder,'*_lbl_*bph.tif'));
+   
     g3names = cell(0,1);
     nmnames = cell(0,1);
+    g4names = cell(0,1);
+    bphnames = cell(0,1);
+    hgpnames = cell(0,1);
+    
+    
+    
     n3 = size(g3files,1); %Number of G3 samples
     nm = size(nmfiles,1); %Number of nm samples
+    n4 = size(g4files,1); %Number of G3 samples
+    nbph = size(bphfiles,1); %Number of nm samples
+    nhgp = size(hgpfiles,1); %Number of nm samples
+ 
     param.smallestlumenarea=5000;
     param.minglandarea = 5000;
     ntextons = 50;
     
-    %stromawidtharr = [3 5 10 15 20 25 30 35 40 50 60 70 80 90 100 110 120 130];
-    stromawidtharr = [150];
+    stromawidtharr = [3 5 10 15 20 25 30 35 40 50 60 70 80 90 100 110 120 130 150];
     obtain_auc_array = 1;
     nstromawidth = length(stromawidtharr);
     if (obtain_auc_array)
@@ -38,14 +57,22 @@
             iter = 0 ;
             curn3=0;
             curnnm = 0;
+            curn4 = 0;
+            curnbph = 0;
+            curnhgp = 0;
             numericclass = zeros(0,1);
             g3textonfeat=zeros(0,ntextons);
+            g4textonfeat=zeros(0,ntextons);
             nmtextonfeat=zeros(0,ntextons);
+            bphtextonfeat=zeros(0,ntextons);
+            hgptextonfeat = zeros(0,ntextons);
+            
             g3stromaarea = zeros(0,1);
+            g4stromaarea = zeros(0,1);
             nmstromaarea = zeros(0,1);
-
-            for idx=1:max(n3,nm)
-           % for idx=43:43
+            bphtromaarea = zeros(0,1);
+            hgptromaarea = zeros(0,1);
+            for idx=1:max([n3 n4 nm nbph nhgp])
              
                 iter = iter+1;
                 %Step 1: count the number of true glands and the number of lumen
@@ -56,12 +83,11 @@
                 %map.
                 if (idx<=n3)
                     curg3filename = strcat(g3folder,g3files(idx).name);
-                    res=process_single_core_g3_vs_nm(curg3filename,param);
+                    res=process_single_core_g3_vs_nm(curg3filename,param,'g3');
                     disp(['G3 - ' g3files(idx).name]);
                     slashpos = strfind(g3files(idx).name,'_');
                     if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
                         movefile(curg3filename,strcat(g3folder,'confused core\',g3files(idx).name));%Move the file to the new new location
-                        %error(strcat(curg3filename,'has NaN histogram'));
                     else 
                         textonfeat(end+1,:)=res.basal_hist_tex_idx(:)'; %Just look at the histogram of texton indices
                         g3textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
@@ -72,16 +98,33 @@
                     g3names{end+1,1}=g3files(idx).name;
                   
                 end
+                
+                 if (idx<=n4)
+                    curg4filename = strcat(g4folder,g4files(idx).name);
+                    res=process_single_core_g3_vs_nm(curg4filename,param,'g4');
+                    disp(['G4 - ' g4files(idx).name]);
+                    slashpos = strfind(g4files(idx).name,'_');
+                    if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
+                        movefile(curg4filename,strcat(g4folder,'confused core\',g4files(idx).name));%Move the file to the new new location
+                    else 
+                        textonfeat(end+1,:)=res.basal_hist_tex_idx(:)'; %Just look at the histogram of texton indices
+                        g4textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                        curn4 = curn4+1;
+                        numericclass(end+1,:)=4;
+
+                    end
+                    g4names{end+1,1}=g4files(idx).name;
+                  
+                end
 
                 if (idx<=nm)
                     curnmfilename = strcat(nmfolder,nmfiles(idx).name);
-                    res=process_single_core_g3_vs_nm(curnmfilename,param);
+                    res=process_single_core_g3_vs_nm(curnmfilename,param,'nm');
                      disp(['NM - ' nmfiles(idx).name]);
                     slashpos = strfind(nmfiles(idx).name,'_');
                    
                     if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
-                        %error(strcat(curnmfilename,'has NaN histogram'));
-                        movefile(curnmfilename,strcat(nmfolder,'confused core\',nmfiles(idx).name));%Move the file to the new new location
+                       movefile(curnmfilename,strcat(nmfolder,'confused core\',nmfiles(idx).name));%Move the file to the new new location
                     else
                         textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
                         nmtextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
@@ -90,39 +133,76 @@
                     end
                     nmnames{end+1,1}=nmfiles(idx).name;
                 end
-
+                
+                 if (idx<=nbph)
+                    curbphfilename = strcat(bphfolder,bphfiles(idx).name);
+                    res=process_single_core_g3_vs_nm(curbphfilename,param,'bph');
+                     disp(['BPH - ' bphfiles(idx).name]);
+                    slashpos = strfind(bphfiles(idx).name,'_');
+                   
+                    if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
+                       movefile(curbphfilename,strcat(bphfolder,'confused core\',bphfiles(idx).name));%Move the file to the new new location
+                    else
+                        textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                        nmtextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                        curnbph = curnbph+1;
+                        numericclass(end+1,:)=-1;
+                    end
+                    bphnames{end+1,1}=bphfiles(idx).name;
+                 end
+                
+                   if (idx<=nhgp)
+                    curhgpfilename = strcat(hgpfolder,hgpfiles(idx).name);
+                    res=process_single_core_g3_vs_nm(curhgpfilename,param,'hgp');
+                     disp(['HGP - ' hgpfiles(idx).name]);
+                    slashpos = strfind(hgpfiles(idx).name,'_');
+                   
+                    if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
+                       movefile(curhgpfilename,strcat(hgpfolder,'confused core\',hgpfiles(idx).name));%Move the file to the new new location
+                    else
+                        textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                        hgptextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                        curnhgp = curnhgp+1;
+                        numericclass(end+1,:)=-2;
+                    end
+                    hgpnames{end+1,1}=hgpfiles(idx).name;
+                end
+                
+             
+    
+                
                 class=numericclass==0;%Convert into true and false datatype
                 feat = textonfeat;
 
-                if (mod(idx,4)==1)
-                    %Next, try to spot out the texton that gives highest AUC for class
-                    %3 and nm and determine where to look for them
-                    texton_auc_arr = zeros(ntextons,1);
-                    for textonidx=1:ntextons
-                            curfeat = feat(:,end+textonidx-ntextons);
-                            b1 = glmfit(curfeat,class,'normal');%Generalized linear model
-                            p1 = glmval(b1,curfeat,'logit');%Compute the fitted probability
-                            [x1,y1,t,texton_auc_arr(textonidx)] = perfcurve(class,p1,true);%Compute the ROC curve by providing the groundtruth
-                    end
-
-                    figure(7);
-                    subplot(121);bar(texton_auc_arr);xlabel('Texton indices');ylabel('AUC values');drawnow;
-                    %find 5 textons that has highest auc and display them
-                    [maxval,tex_idx_sorted]=sort(texton_auc_arr,'descend');
-                end
-                %Compute the mean and the std of two classes
-                mean_g3 = mean(g3textonfeat,1);
-                std_g3 = std(g3textonfeat,0,1);
-                mean_nm = mean(nmtextonfeat,1);
-                std_nm = std(nmtextonfeat,0,1);
-                figure(7);
-                subplot(122);
-                errorbar([1:ntextons],mean_g3,std_g3,'or');
-                hold on;
-                errorbar([1:ntextons],mean_nm,std_nm,'^b');
-                hold off;drawnow;
-                legend('g3','nm');
-                title('Mean and standard deviation of the texton histogram on stroma regions')
+%                 if (mod(idx,4)==1)
+%                     %Next, try to spot out the texton that gives highest AUC for class
+%                     %3 and nm and determine where to look for them
+%                     texton_auc_arr = zeros(ntextons,1);
+%                     for textonidx=1:ntextons
+%                             curfeat = feat(:,end+textonidx-ntextons);
+%                             b1 = glmfit(curfeat,class,'normal');%Generalized linear model
+%                             p1 = glmval(b1,curfeat,'logit');%Compute the fitted probability
+%                             [x1,y1,t,texton_auc_arr(textonidx)] = perfcurve(class,p1,true);%Compute the ROC curve by providing the groundtruth
+%                     end
+% 
+%                     figure(7);
+%                     subplot(121);bar(texton_auc_arr);xlabel('Texton indices');ylabel('AUC values');drawnow;
+%                     %find 5 textons that has highest auc and display them
+%                     [maxval,tex_idx_sorted]=sort(texton_auc_arr,'descend');
+%                 end
+%                 %Compute the mean and the std of two classes
+%                 mean_g3 = mean(g3textonfeat,1);
+%                 std_g3 = std(g3textonfeat,0,1);
+%                 mean_nm = mean(nmtextonfeat,1);
+%                 std_nm = std(nmtextonfeat,0,1);
+%                 figure(7);
+%                 subplot(122);
+%                 errorbar([1:ntextons],mean_g3,std_g3,'or');
+%                 hold on;
+%                 errorbar([1:ntextons],mean_nm,std_nm,'^b');
+%                 hold off;drawnow;
+%                 legend('g3','nm');
+%                 title('Mean and standard deviation of the texton histogram on stroma regions')
 
 %                 figure(4);
 %                 plot(g3textonfeat(:,9),g3textonfeat(:,31),'^r');hold on;
@@ -170,13 +250,10 @@
 %                 stairs(x,nmhist,'r');hold on;
 %                 
                 
-                drawnow;
-
-
+%                drawnow;
             end
-            clc;
-            save(strcat('cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'),...
-                'nmtextonfeat','g3textonfeat','texton_auc_arr','mean_g3','mean_nm','std_g3','std_nm','-v7.3');
+            save(strcat(pwd,'/Basal_hist_data_at_different_window_size/cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'),...
+                'nmtextonfeat','g3textonfeat','textonfeat','numericclass','g4textonfeat','bphtextonfeat','hgptextonfeat','-v7.3');
         end
     end
     

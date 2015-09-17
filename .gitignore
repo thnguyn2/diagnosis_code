@@ -4,3 +4,7 @@
 *.mat
 /trainedclassifier/*.mat
 /Non-relevant old code/*.mat
+/iccv_mat/*.mat
+/*/*.log
+/iccv_paper/texton_data_for_training/*.mat
+/iccv_paper/confusionmatrices/*.mat

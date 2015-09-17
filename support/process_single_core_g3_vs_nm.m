@@ -1,4 +1,4 @@
-function res=process_single_core_g3_vs_nm(curfilename,param)
+function res=process_single_core_g3_vs_nm(curfilename,param,type)
 %Inputs:
 %   curfilename: name of the current label image
 %   param: parameters for refining the gland and luminal regions
@@ -13,8 +13,14 @@ function res=process_single_core_g3_vs_nm(curfilename,param)
 %        res.mean_dist: mean distortion of the gland
 
         %Compute ls and g.
-        phasefilename = strcat(curfilename(1:end-12),'small',curfilename(end-8:end));
-        texidxname = strcat(curfilename(1:end-12),'texidx',curfilename(end-8:end));
+        if ((strcmp(type,'nm'))|(strcmp(type,'g3'))|(strcmp(type,'g4')))
+            phasefilename = strcat(curfilename(1:end-12),'small',curfilename(end-8:end));
+            texidxname = strcat(curfilename(1:end-12),'texidx',curfilename(end-8:end));
+        else
+            phasefilename = strcat(curfilename(1:end-13),'small',curfilename(end-9:end));
+            texidxname = strcat(curfilename(1:end-13),'texidx',curfilename(end-9:end));
+
+        end
         phasemap = single(imread(phasefilename));
         texidx = imread(texidxname); %map of texton index
 %         [gx,gy]=gradient(phasemap);
