@@ -1,18 +1,14 @@
 clc;
 clear all;
 close all;
-%last updated: April 8th
 disp('Generating groundth truth data from core diagnosis results...')
 disp('Reading Excel label data...')
 label_file_name = 'D:\One_Drive\H & E for Vicky\label.xlsx';
 [num_data,text_data,raw_data] = xlsread(label_file_name);
 disp('Done.');
-labeldir = 'E:\TMA_cores_and_diagnosis\diagnosis_of_vicky\';
-addpath('.\support\');%Add the support path to read imagej's roi
-
 corefolder = 'E:\TMA2D_all_cores\';
-roifolder = labeldir;
-
+labeldir = strcat(corefolder,'diagnosis_of_vicky\');
+roifolder = strcat('E:\TMA_cores_and_diagnosis\diagnosis_of_vicky\');
 %First, extract the core's name and the regions within the cores
 ncores=length(raw_data(2:end,1));
 disp(['Found ' num2str(ncores) ' different cores']);
@@ -30,6 +26,8 @@ for coreidx=1:ncores
 end
 
 %Step 2: extract the list of cores in the folder and create the cores' mask
+
+
 tifffiles = dir(strcat(corefolder,'*.tif')); %Get all the tif files
 tifflist = cell(0,1);
 roilist = cell(0,1);
@@ -48,15 +46,15 @@ nrows = 3072;
 ncols = 3072;
 curnrows=10000;
 curncols=10000;
-retrain = 1; %Recreate the roi dataset
+addpath('.\support\');%Add the support path to read imagej's roi
 for tiffidx=1:ncores
    %Get the roi name
-   curfilename = 'J4';
+   curfilename = 'AA19';
    %curfilename = tifflist{tiffidx};
-   disp(['Working on ' curfilename '...'])
    roiname = strcat(roifolder,curfilename,'.zip');%Check if we have the tif file and the roi file or not
    tifffilename = strcat(corefolder,curfilename,'.tif');
-   if ((exist(roiname))&(((exist(tifffilename))&&(~exist(strcat(labeldir,curfilename,'_roi_diag.tif'))))|(retrain==1)))
+   if ((exist(roiname))&&(exist(tifffilename))&&(~exist(strcat(roifolder,curfilename,'_roi.mat'))))
+         disp(['Working on ' curfilename '...'])
          sROI = ReadImageJROI(roiname);%Read the roi file
          %curim = imread(tifffilename);%Read the tiff file
          %[curnrows,curncols] = size(curim);
@@ -167,8 +165,7 @@ for tiffidx=1:ncores
          subplot(121);imagesc(newmap);colorbar
          %subplot(122);imagesc(phaseresizedim);
          drawnow
-         writeTIFF(newmap, strcat(labeldir,curfilename,'_roi_diag.tif'));%Just visualize the pixels but we generate the subimages from the mat matrix due to overlapping
-         save(strcat(labeldir,curfilename,'_roi_diag_loc.mat'),'roiindexlist','roitypelist','-v7.3')
+         writeTIFF(newmap, strcat(labeldir,curfilename,'_roi_diag.tif'));
        disp('Done.')
    else
        disp('Did not find the roi file...')

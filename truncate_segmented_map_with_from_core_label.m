@@ -2,70 +2,98 @@ function truncate_segmented_map_with_from_core_label
     clc;
     clear all;
     close all;
-    datapath = 'H:\TMA_cores_and_diagnosis\';
+    datapath = 'E:\TMA_cores_and_diagnosis\';
     texton_dir=strcat(datapath,'texdir\');
-    label_dir=strcat(datapath,'label\2class_results\');
+    label_dir=strcat(datapath,'label\3class_results\');
     core_groundtruth_dir = strcat(datapath,'diagnosis_of_vicky\');%This is the groundtruth for the core
     addpath('.\support')
     addpath(strcat(cd(cd('..')),'\support'));
     [filenames,glandnames,classlist,alltiffilelist]=findFileNameFromROIs(datapath);
-    savephaseim = 0;
-    phaseim = -1;
+    noglandmarkuplist = {'N1','O1','P1','S1','J2','N2','P2','S2','I3','K3','M3','N3','P3','T3',...
+        'Y3','A4','I4','Q4','S4','T4','Y4','A6','I6','Q6','G7','I7','K7','M7','N7','O7','T7',...
+        'H8','M8','N8','U8','W8','A9','I9','N9','T9','W9','D11','I11','M11','N11','P11','T11',...
+        'Z11','D12','P12','Q12','U12','W12','Z12','D13','K13','M13','Q13','T13','W13','Z13',....
+        'D14','J14','K14','M14','Q14','T14','W14','Z14','Z15','K16','T16','W16','Y16','Z16',...
+        'C17','S17','Y17','Z17','U18','W18','G19','I19','U19','W19','Y19','Z19','AA19'};%This is the list of the cores that doesn't have the student marking
+    notusenonegtdata = 1;
     for fileidx = 1:length(alltiffilelist)
-        cur_file_name = alltiffilelist{fileidx};
-        %cur_file_name = 'E:\TMA_cores_and_diagnosis\d3+3\J4.tif';
+        %cur_file_name = alltiffilelist{fileidx};
+        cur_file_name = 'E:\TMA_cores_and_diagnosis\dHGPIN\AB11.tif';
         dot_pos = strfind(cur_file_name,'.'); %Get the position of the dot
         slash_pos = strfind(cur_file_name,'\');
         label_name = cur_file_name(slash_pos(end)+1:dot_pos(1)-1);
-        tic;
+        if ((notusenonegtdata)&&(~ismember(label_name,noglandmarkuplist)))
+
             disp(['Working on ' label_name ', Sample Idx: ' num2str(fileidx)])
-            if (savephaseim)
-                phaseim = imread(strcat(cur_file_name(1:end-4),'.tif'));%Downsampled image  
-            end
-            labelim = imread(strcat(label_dir,label_name,'_seg_multi_res.tif')); %2 class map.
+            phaseim = imread(strcat(cur_file_name(1:end-4),'_small.tif'));%Downsampled image  
+            labelim3cl = imread(strcat(label_dir,label_name,'_90_3cl.tif'));%3 class map - The segmentation map needs to be clear
+            %%more on cleaning the segmentation results. The lumen is perfect
+            %%(March 18, 15)
+            labelim2cl = imread(strcat(cur_file_name(1:end-4),'_seg_multi_res_3072_strict_hf.tif')); %2 class map.
+
+            %Make sure that there is no holes inside the glands and inside the
+            %stroma. This code should be revised so that only a 3 class
+            %diagnosis results can be used
+            lumenmap = (labelim3cl==0);
+            stromamap = (labelim2cl==2.0);
+            %Clear out small regions
+            invstromamap = 1-stromamap;
+            invstromamap = bwareaopen(invstromamap,5000);
+            stromamap = 1-invstromamap;
+            glandmap = (labelim2cl==1.0);
+            glandmap = imfill(glandmap,'holes');
+            glandidx = find(glandmap == 1);
+            labelim = 2*stromamap;
+            labelim(glandidx)=1;
+            labelim = labelim .*(1-lumenmap); %Mask out lumen puxe
             %Load the core diagnosis and use it to crop the segmented map
             coregt_map_file_name = strcat(core_groundtruth_dir,label_name,'_roi_diag.tif');
-            roi_loc_file_name = strcat(core_groundtruth_dir,label_name,'_roi_diag_loc.mat');
-            
             core_index_texton_name = strcat(texton_dir,label_name,'_texton_index_map.tif');
             if (exist(coregt_map_file_name))
-                load(roi_loc_file_name);%Load the position and the class for all the rois
+                coregt_map = imread(coregt_map_file_name);
+                figure(1);
+                subplot(121);
+                imagesc(coregt_map);colorbar
+                subplot(122);
+                imagesc(labelim);colorbar
                 texidxmap = imread(core_index_texton_name);%Load the histogram of texton
-                create_crop_imagesc(3,roiindexlist,roitypelist,phaseim,texidxmap,labelim,label_name,datapath);%Create all the image of grade 3 cores
-                create_crop_imagesc(4,roiindexlist,roitypelist,phaseim,texidxmap,labelim,label_name,datapath);%Grade 4 case
-                create_crop_imagesc(5,roiindexlist,roitypelist,phaseim,texidxmap,labelim,label_name,datapath);%Grade 5 case
-                create_crop_imagesc(-1,roiindexlist,roitypelist,phaseim,texidxmap,labelim,label_name,datapath);%Normal case
-                create_crop_imagesc(-3,roiindexlist,roitypelist,phaseim,texidxmap,labelim,label_name,datapath);%BPH case
-                 create_crop_imagesc(-5,roiindexlist,roitypelist,phaseim,texidxmap,labelim,label_name,datapath);%Grade 5 case
-               
+
+
+
+                drawnow
+                create_crop_imagesc(3,coregt_map,phaseim,texidxmap,labelim,label_name,datapath);%Create all the image of grade 3 cores
+                create_crop_imagesc(4,coregt_map,phaseim,texidxmap,labelim,label_name,datapath);%Grade 4 case
+                create_crop_imagesc(5,coregt_map,phaseim,texidxmap,labelim,label_name,datapath);%Grade 5 case
+                create_crop_imagesc(-1,coregt_map,phaseim,texidxmap,labelim,label_name,datapath);%Normal case
+                create_crop_imagesc(-3,coregt_map,phaseim,texidxmap,labelim,label_name,datapath);%BPH case
+
 
             else
                 disp(['Core ' label_name ' ground truth does not exist...'])
             end
-            tproc = toc;
-            disp(['Processing time: ' num2str(tproc) ' (s)']);
+        else
+            disp(['Skip ' label_name 'for belonging to the exclusion list'])
+        end
 
-      end
+    end
 end
 
-function [tempphaseim,temptextonidx]=create_crop_imagesc(class,roiindexlist,roitypelist,phaseim,texidxmap,labelim,label_name,datapath)
+function [tempphaseim,temptextonidx]=create_crop_imagesc(class,coregt_map,phaseim,texidxmap,labelim,label_name,datapath)
      g3folder = strcat(datapath,'diagnosis_of_vicky\g3\');
      g4folder = strcat(datapath,'diagnosis_of_vicky\g4\');
      g5folder = strcat(datapath,'diagnosis_of_vicky\g5\');
      nmfolder = strcat(datapath,'diagnosis_of_vicky\nm\');
      bphfolder = strcat(datapath,'diagnosis_of_vicky\bph\');
-     hgpfolder = strcat(datapath,'diagnosis_of_vicky\hgp\');
-     if (phaseim~=-1)
-        dimratio  = size(phaseim,1)/size(labelim,1);
-     end
-     foundcoreidx = find(roitypelist==class); %Find all the rois of the current class
-     if (~isempty(foundcoreidx))
-         nregions = length(foundcoreidx); 
-         for regionidx=1:nregions
-               curidx1 = roiindexlist{foundcoreidx(regionidx)}; 
-               curarea = length(curidx1);
-               if (curarea>=1000)
-                   [currowidx,curcolidx]=ind2sub(size(labelim),curidx1);
+    
+     bw = (coregt_map==class);
+     if (sum(bw(:))>0)
+          regions = regionprops(bw,'PixelIdxList'); %Get all the grade 3 regions
+          areas = regionprops(bw,'Area');
+          for regionidx=1:length(regions)
+               curidx1 = regions(regionidx).PixelIdxList; 
+               curarea = areas(regionidx).Area;
+               if (curarea>=30000)
+                   [currowidx,curcolidx]=ind2sub(size(coregt_map),curidx1);
                    r1 = min(currowidx);
                    c1 = min(curcolidx);
                    r2 = max(currowidx);
@@ -77,62 +105,45 @@ function [tempphaseim,temptextonidx]=create_crop_imagesc(class,roiindexlist,roit
                    currowidx = currowidx+1-r1;
                    curcolidx = curcolidx+1-c1;
                    curidx = currowidx + (curcolidx-1)*bbnrows;
+                   tempphaseim = zeros(bbnrows,bbncols);
+                   tempphaseim(curidx)=phaseim(curidx1);
                    labelmap(curidx) = labelim(curidx1);
                    temptextonidx(curidx) = texidxmap(curidx1);
-                  
-                   if (phaseim~=-1) %If we want to save the phase image as well
-                       tempphaseim = phaseim(round(r1*dimratio):round(r2*dimratio),round(c1*dimratio):round(c2*dimratio));
-                       tempphaseim = tempphaseim.*cast((imresize(temptextonidx,size(tempphaseim),'nearest')~=0),'uint16');
-                   end
+                   figure(3);
+                   imagesc(tempphaseim);drawnow;
+                   figure(4);
+                   imagesc(labelmap);drawnow;
+                   figure(5);
+                   imagesc(temptextonidx);drawnow;
                    if (class==4)
-                         %writeTIFF(tempphaseim,strcat(g4folder,label_name,'_small_',num2str(regionidx),'_g4.tif'));%Save the phase image
-                         %writeTIFF(tempphaseim,strcat(g4folder,label_name,'_',num2str(regionidx),'_g4.tif'),'uint16');%Save the phase image
-                         %writeTIFF(labelmap,strcat(g4folder,label_name,'_lbl_',num2str(regionidx),'_g4.tif'));%Save the phase image
-                         %writeTIFF(temptextonidx,strcat(g4folder,label_name,'_texidx_',num2str(regionidx),'_g4.tif'));%Save the phase image
-                         save(strcat(g4folder,label_name,'_coord_',num2str(regionidx),'_g4.mat'),'r1','r2','c1','c2');
+                         writeTIFF(tempphaseim,strcat(g4folder,label_name,'_small_',num2str(regionidx),'_g4.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(g4folder,label_name,'_lbl_',num2str(regionidx),'_g4.tif'));%Save the phase image
+                         writeTIFF(temptextonidx,strcat(g4folder,label_name,'_texidx_',num2str(regionidx),'_g4.tif'));%Save the phase image
+                  
                    elseif (class==3)
-                         %writeTIFF(tempphaseim,strcat(g3folder,label_name,'_small_',num2str(regionidx),'_g3.tif'),'uint16');%Save the phase image
-                         
-                         %writeTIFF(tempphaseim,strcat(g3folder,label_name,'_',num2str(regionidx),'_g3.tif'),'uint16');%Save the phase image
-                         %writeTIFF(labelmap,strcat(g3folder,label_name,'_lbl_',num2str(regionidx),'_g3.tif'));%Save the phase image
-                         %writeTIFF(temptextonidx,strcat(g3folder,label_name,'_texidx_',num2str(regionidx),'_g3.tif'));%Save the phase image
-                         save(strcat(g3folder,label_name,'_coord_',num2str(regionidx),'_g3.mat'),'r1','r2','c1','c2');
-           
+                         writeTIFF(tempphaseim,strcat(g3folder,label_name,'_small_',num2str(regionidx),'_g3.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(g3folder,label_name,'_lbl_',num2str(regionidx),'_g3.tif'));%Save the phase image
+                         writeTIFF(temptextonidx,strcat(g3folder,label_name,'_texidx_',num2str(regionidx),'_g3.tif'));%Save the phase image
+                  
                    elseif (class==5)
-                       % writeTIFF(tempphaseim,strcat(g5folder,label_name,'_small_',num2str(regionidx),'_g5.tif'),'uint16');%Save the phase image
-                         
-                       % writeTIFF(tempphaseim,strcat(g5folder,label_name,'_',num2str(regionidx),'_g5.tif'),'uint16');%Save the phase image
-                       %  writeTIFF(labelmap,strcat(g5folder,label_name,'_lbl_',num2str(regionidx),'_g5.tif'));%Save the phase image
-                       %writeTIFF(temptextonidx,strcat(g5folder,label_name,'_texidx_',num2str(regionidx),'_g5.tif'));%Save the phase image
-                        save(strcat(g5folder,label_name,'_coord_',num2str(regionidx),'_g5.mat'),'r1','r2','c1','c2');
-           
+                         writeTIFF(tempphaseim,strcat(g5folder,label_name,'_small_',num2str(regionidx),'_g5.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(g5folder,label_name,'_lbl_',num2str(regionidx),'_g5.tif'));%Save the phase image
+                         writeTIFF(temptextonidx,strcat(g5folder,label_name,'_texidx_',num2str(regionidx),'_g5.tif'));%Save the phase image
+                  
                    elseif (class==-1.0)
-                       % writeTIFF(tempphaseim,strcat(nmfolder,label_name,'_small_',num2str(regionidx),'_nm.tif'),'uint16');%Save the phase image
-                          
-                       % writeTIFF(tempphaseim,strcat(nmfolder,label_name,'_',num2str(regionidx),'_nm.tif'),'uint16');%Save the phase image
-                       %  writeTIFF(labelmap,strcat(nmfolder,label_name,'_lbl_',num2str(regionidx),'_nm.tif'));%Save the phase image
-                       %  writeTIFF(temptextonidx,strcat(nmfolder,label_name,'_texidx_',num2str(regionidx),'_nm.tif'));%Save the phase image
-                         save(strcat(nmfolder,label_name,'_coord_',num2str(regionidx),'_nm.mat'),'r1','r2','c1','c2');
-           
+                         writeTIFF(tempphaseim,strcat(nmfolder,label_name,'_small_',num2str(regionidx),'_nm.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(nmfolder,label_name,'_lbl_',num2str(regionidx),'_nm.tif'));%Save the phase image
+                         writeTIFF(temptextonidx,strcat(nmfolder,label_name,'_texidx_',num2str(regionidx),'_nm.tif'));%Save the phase image
+                  
                    elseif (class==-3.0) %BPH case
-                       %  writeTIFF(tempphaseim,strcat(bphfolder,label_name,'_small_',num2str(regionidx),'_bph.tif'),'uint16');%Save the phase image
-                       %  writeTIFF(tempphaseim,strcat(bphfolder,label_name,'_',num2str(regionidx),'_bph.tif'),'uint16');%Save the phase image
-                       %  writeTIFF(labelmap,strcat(bphfolder,label_name,'_lbl_',num2str(regionidx),'_bph.tif'));%Save the phase image
-                       %  writeTIFF(temptextonidx,strcat(bphfolder,label_name,'_texidx_',num2str(regionidx),'_bph.tif'));%Save the phase image
-                       save(strcat(bphfolder,label_name,'_coord_',num2str(regionidx),'_bph.mat'),'r1','r2','c1','c2');
-           
-                   elseif (class==-5.0) %HGPIN
-                        %writeTIFF(tempphaseim,strcat(hgpfolder,label_name,'_small_',num2str(regionidx),'_hgp.tif'),'uint16');%Save the phase image
-                        %writeTIFF(tempphaseim,strcat(hgpfolder,label_name,'_',num2str(regionidx),'_hgp.tif'),'uint16');%Save the phase image
-                        % writeTIFF(labelmap,strcat(hgpfolder,label_name,'_lbl_',num2str(regionidx),'_hgp.tif'));%Save the phase image
-                        %writeTIFF(temptextonidx,strcat(hgpfolder,label_name,'_texidx_',num2str(regionidx),'_hgp.tif'));%Save the phase image
-                         save(strcat(hgpfolder,label_name,'_coord_',num2str(regionidx),'_hgp.mat'),'r1','r2','c1','c2');
-           
+                         writeTIFF(tempphaseim,strcat(bphfolder,label_name,'_small_',num2str(regionidx),'_bph.tif'));%Save the phase image
+                         writeTIFF(labelmap,strcat(bphfolder,label_name,'_lbl_',num2str(regionidx),'_bph.tif'));%Save the phase image
+                         writeTIFF(temptextonidx,strcat(bphfolder,label_name,'_texidx_',num2str(regionidx),'_bph.tif'));%Save the phase image
+                  
                    end
                end
           end
      else
          tempphaseim=0;         
-     end
- 
+      end
 end

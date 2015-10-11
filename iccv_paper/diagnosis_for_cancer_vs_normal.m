@@ -7,7 +7,7 @@
     clc;
     %clear all;
     close all;
-    datafolder = '/media/thnguyn2/Elements/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    datafolder = 'F:/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
     addpath('../support');
     g3folder =strcat(datafolder,'g3/');
     nmfolder = strcat(datafolder,'nm/');
@@ -41,11 +41,11 @@
     param.minglandarea = 5000;
     ntextons = 50;
     
-    stromawidtharr = [3 5 10 15 20 25 30 35 40 50 60 70 80 90 100 110 120 130 150];
+    stromawidtharr = [20 30 40 50 60 70 80 90 100 110 120];
     obtain_auc_array = 1;
     nstromawidth = length(stromawidtharr);
     if (obtain_auc_array)
-        for stromawidthidx = 1:nstromawidth
+        for stromawidthidx = 7:nstromawidth
             stromawidth = stromawidtharr(stromawidthidx);
             disp(['Processing at width = ' num2str(stromawidth)])
             param.glswstd = 25; %Ls and g windows size
@@ -87,15 +87,15 @@
                     disp(['G3 - ' g3files(idx).name]);
                     slashpos = strfind(g3files(idx).name,'_');
                     if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
-                        movefile(curg3filename,strcat(g3folder,'confused core\',g3files(idx).name));%Move the file to the new new location
+                        %movefile(curg3filename,strcat(g3folder,'confused core\',g3files(idx).name));%Move the file to the new new location
                     else 
                         textonfeat(end+1,:)=res.basal_hist_tex_idx(:)'; %Just look at the histogram of texton indices
                         g3textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
                         curn3 = curn3+1;
                         numericclass(end+1,:)=3;
-
+                        g3names{end+1,1}=g3files(idx).name;
                     end
-                    g3names{end+1,1}=g3files(idx).name;
+                    
                   
                 end
                 
@@ -105,68 +105,77 @@
                     disp(['G4 - ' g4files(idx).name]);
                     slashpos = strfind(g4files(idx).name,'_');
                     if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
-                        movefile(curg4filename,strcat(g4folder,'confused core\',g4files(idx).name));%Move the file to the new new location
+                        %movefile(curg4filename,strcat(g4folder,'confused core\',g4files(idx).name));%Move the file to the new new location
                     else 
                         textonfeat(end+1,:)=res.basal_hist_tex_idx(:)'; %Just look at the histogram of texton indices
                         g4textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
                         curn4 = curn4+1;
                         numericclass(end+1,:)=4;
-
-                    end
-                    g4names{end+1,1}=g4files(idx).name;
+                        g4names{end+1,1}=g4files(idx).name;
                   
+            
+                    end
                 end
 
                 if (idx<=nm)
                     curnmfilename = strcat(nmfolder,nmfiles(idx).name);
-                    res=process_single_core_g3_vs_nm(curnmfilename,param,'nm');
-                     disp(['NM - ' nmfiles(idx).name]);
-                    slashpos = strfind(nmfiles(idx).name,'_');
-                   
-                    if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
-                       movefile(curnmfilename,strcat(nmfolder,'confused core\',nmfiles(idx).name));%Move the file to the new new location
-                    else
-                        textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
-                        nmtextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
-                        curnnm = curnnm+1;
-                        numericclass(end+1,:)=0;
+                    if (exist(curnmfilename,'file'))
+                        res=process_single_core_g3_vs_nm(curnmfilename,param,'nm');
+                         disp(['NM - ' nmfiles(idx).name]);
+                        slashpos = strfind(nmfiles(idx).name,'_');
+
+                        if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
+                           %movefile(curnmfilename,strcat(nmfolder,'confused core\',nmfiles(idx).name));%Move the file to the new new location
+                        else
+                            textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                            nmtextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                            curnnm = curnnm+1;
+                            numericclass(end+1,:)=0;
+                            nmnames{end+1,1}=nmfiles(idx).name;
+
+                        end
                     end
-                    nmnames{end+1,1}=nmfiles(idx).name;
                 end
                 
                  if (idx<=nbph)
                     curbphfilename = strcat(bphfolder,bphfiles(idx).name);
-                    res=process_single_core_g3_vs_nm(curbphfilename,param,'bph');
-                     disp(['BPH - ' bphfiles(idx).name]);
-                    slashpos = strfind(bphfiles(idx).name,'_');
-                   
-                    if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
-                       movefile(curbphfilename,strcat(bphfolder,'confused core\',bphfiles(idx).name));%Move the file to the new new location
-                    else
-                        textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
-                        nmtextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
-                        curnbph = curnbph+1;
-                        numericclass(end+1,:)=-1;
+                    if (exist(curbphfilename,'file'))
+                        res=process_single_core_g3_vs_nm(curbphfilename,param,'bph');
+                         disp(['BPH - ' bphfiles(idx).name]);
+                        slashpos = strfind(bphfiles(idx).name,'_');
+
+                        if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
+                           %movefile(curbphfilename,strcat(bphfolder,'confused core\',bphfiles(idx).name));%Move the file to the new new location
+                        else
+                            textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                            nmtextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                            curnbph = curnbph+1;
+                            numericclass(end+1,:)=-1;
+                            bphnames{end+1,1}=bphfiles(idx).name;
+
+                        end
                     end
-                    bphnames{end+1,1}=bphfiles(idx).name;
-                 end
+                end
                 
                    if (idx<=nhgp)
                     curhgpfilename = strcat(hgpfolder,hgpfiles(idx).name);
-                    res=process_single_core_g3_vs_nm(curhgpfilename,param,'hgp');
-                     disp(['HGP - ' hgpfiles(idx).name]);
-                    slashpos = strfind(hgpfiles(idx).name,'_');
-                   
-                    if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
-                       movefile(curhgpfilename,strcat(hgpfolder,'confused core\',hgpfiles(idx).name));%Move the file to the new new location
-                    else
-                        textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
-                        hgptextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
-                        curnhgp = curnhgp+1;
-                        numericclass(end+1,:)=-2;
+                    if (exist(curhgpfilename,'file'))                      
+                        res=process_single_core_g3_vs_nm(curhgpfilename,param,'hgp');
+                         disp(['HGP - ' hgpfiles(idx).name]);
+                        slashpos = strfind(hgpfiles(idx).name,'_');
+
+                        if ((sum(isnan(res.basal_hist_tex_idx))>0)|(res.stromaarea<20000)|(res.roisize<0.5*1e+6))
+                           %movefile(curhgpfilename,strcat(hgpfolder,'confused core\',hgpfiles(idx).name));%Move the file to the new new location
+                        else
+                            textonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                            hgptextonfeat(end+1,:)=res.basal_hist_tex_idx(:)';
+                            curnhgp = curnhgp+1;
+                            numericclass(end+1,:)=-2;
+                            hgpnames{end+1,1}=hgpfiles(idx).name;
+
+                        end
                     end
-                    hgpnames{end+1,1}=hgpfiles(idx).name;
-                end
+               end
                 
              
     
