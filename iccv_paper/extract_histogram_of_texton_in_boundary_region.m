@@ -1,13 +1,13 @@
-function demo
+function extract_histogram_of_texton_in_boundary_region
 %This program extracts the histogram of textons in for the regions that may
 %contain the basal cells
 %Author: Tan H. Nguyen
-%Last update: May 5th, 2015
+%Last update: Oct 15th, 2015
 %University of Illinois at Urbana-Chamapaign
     clc;
     clear all;
     %close all;
-    datafolder = '/media/thnguyn2/Elements/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    datafolder = 'V:/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
     addpath('../support');
     g3folder =strcat(datafolder,'g3/');
     g4folder =strcat(datafolder,'g4/');
@@ -15,7 +15,7 @@ function demo
     hgpfolder =strcat(datafolder,'hgp/');
     bphfolder = strcat(datafolder,'bph/');
 
-    texton_hist_folder = '/media/thnguyn2/Elements/TMA_cores_and_diagnosis/texdir/'
+    texton_hist_folder = 'V:/TMA_cores_and_diagnosis/texdir/'
     g3files = dir(strcat(g3folder,'*_lbl_*g3.tif'));
     g4files = dir(strcat(g4folder,'*_lbl_*g4.tif'));
     nmfiles = dir(strcat(nmfolder,'*_lbl_*nm.tif'));
@@ -457,7 +457,7 @@ function demo
                         subplot(221);imshow(H);title('G3');drawnow;
                         filename2save = strcat(g3folder,...
                         g3files(idx).name(1:dash_pos(1)),'basal_heat_map',g3files(idx).name(dash_pos(2):end));%Coordinates of the region to extract the ROI)
-                        writeTIFF(H,filename2save,'uint16');
+                        %writeTIFF(H,filename2save,'uint16');
                        
                    end
                 end
@@ -489,7 +489,7 @@ function demo
                         subplot(221);imshow(H);title('G4');drawnow;
                         filename2save = strcat(g4folder,...
                             g4files(idx).name(1:dash_pos(1)),'basal_heat_map',g4files(idx).name(dash_pos(2):end));%Coordinates of the region to extract the ROI)
-                        writeTIFF(H,filename2save,'uint16');
+                        %writeTIFF(H,filename2save,'uint16');
                        
                     end
                 end
@@ -521,7 +521,7 @@ function demo
 
                         filename2save = strcat(nmfolder,...
                             nmfiles(idx).name(1:dash_pos(1)),'basal_heat_map',nmfiles(idx).name(dash_pos(2):end));%Coordinates of the region to extract the ROI)
-                        writeTIFF(H,filename2save,'uint16'); 
+                        %writeTIFF(H,filename2save,'uint16'); 
                       
                     end
                 end
@@ -555,7 +555,7 @@ function demo
                     subplot(223);imshow(H);title('HGP');drawnow;
                     filename2save = strcat(hgpfolder,...
                         hgpfiles(idx).name(1:dash_pos(1)),'basal_heat_map',hgpfiles(idx).name(dash_pos(2):end));%Coordinates of the region to extract the ROI
-                    writeTIFF(H,filename2save,'uint16'); 
+                    %writeTIFF(H,filename2save,'uint16'); 
                    
                 end
                 
@@ -589,7 +589,7 @@ function demo
                         subplot(224);imshow(H);title('BPH');drawnow;
                         filename2save = strcat(bphfolder,...
                             bphfiles(idx).name(1:dash_pos(1)),'basal_heat_map',nmfiles(idx).name(dash_pos(2):end));%Coordinates of the region to extract the ROI)
-                        writeTIFF(H,filename2save,'uint16'); 
+                        %writeTIFF(H,filename2save,'uint16'); 
                       
                     end
                 end
