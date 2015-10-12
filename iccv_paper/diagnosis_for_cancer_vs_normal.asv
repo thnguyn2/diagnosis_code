@@ -16,32 +16,31 @@
     bphfolder = strcat(datafolder,'bph/');
     hgpfolder = strcat(datafolder,'hgp/');
   
-    g3files = dir(strcat(g3folder,'*_lbl_*g3.tif'));
-    g4files = dir(strcat(g4folder,'*_lbl_*g4.tif'));
-    nmfiles = dir(strcat(nmfolder,'*_lbl_*nm.tif'));
-    hgpfiles = dir(strcat(hgpfolder,'*_lbl_*hgp.tif'));
-    bphfiles = dir(strcat(bphfolder,'*_lbl_*bph.tif'));
-   
-    g3names = cell(0,1);
-    nmnames = cell(0,1);
-    g4names = cell(0,1);
-    bphnames = cell(0,1);
-    hgpnames = cell(0,1);
-    
-    n3 = size(g3files,1); %Number of G3 samples
-    nm = size(nmfiles,1); %Number of nm samples
-    n4 = size(g4files,1); %Number of G3 samples
-    nbph = size(bphfiles,1); %Number of nm samples
-    nhgp = size(hgpfiles,1); %Number of nm samples
- 
     param.smallestlumenarea=5000;
     param.minglandarea = 5000;
     ntextons = 50;
     
     stromawidtharr = [20 30 40 50 60 70 80 90 100 110 120];
     obtain_auc_array = 0;
-    nstromawidth = length(stromawidtharr);
     if (obtain_auc_array)
+        g3files = dir(strcat(g3folder,'*_lbl_*g3.tif'));
+        g4files = dir(strcat(g4folder,'*_lbl_*g4.tif'));
+        nmfiles = dir(strcat(nmfolder,'*_lbl_*nm.tif'));
+        hgpfiles = dir(strcat(hgpfolder,'*_lbl_*hgp.tif'));
+        bphfiles = dir(strcat(bphfolder,'*_lbl_*bph.tif'));
+
+        g3names = cell(0,1);
+        nmnames = cell(0,1);
+        g4names = cell(0,1);
+        bphnames = cell(0,1);
+        hgpnames = cell(0,1);
+
+        n3 = size(g3files,1); %Number of G3 samples
+        nm = size(nmfiles,1); %Number of nm samples
+        n4 = size(g4files,1); %Number of G3 samples
+        nbph = size(bphfiles,1); %Number of nm samples
+        nhgp = size(hgpfiles,1); %Number of nm samples
+        
         for stromawidthidx = 1:nstromawidth
             stromawidth = stromawidtharr(stromawidthidx);
             disp(['Processing at width = ' num2str(stromawidth)])
@@ -182,9 +181,7 @@
         end
     end
     
-    obtain_auc_array = 0;
     nstromawidth = length(stromawidtharr);
-    
     %First, just load the auc for different cores and display the data
     colorarr = 'rgbmk';
     patternarr = 'o^*v';
@@ -192,11 +189,44 @@
     
     %--Perform cancer vs non-cancer classification--
     %Generate the cancer and non-cancer label from the class label
+    kval = 10;
     for stromaidx = 1:nstromawidth
         stromawidth =  stromawidtharr(stromaidx);
-        load(strcat(pwd,'cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'));
-        iscancer = cast(numericclass==3,'double')+cast(numericclass==4,'double');
-             
+        load(strcat(pwd,'/Basal_hist_data_at_different_window_size/cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'));
+        iscancer = (numericclass==3)|(numericclass==4);
+        %SVMModel = fitcsvm(textonfeat,iscancer,'KernelFunction','rbf','Standardize',true);
+        %[out_class,scores] = predict(SVMModel,textonfeat);
+        %error = sum(out_class==iscancer)/length(iscancer);
+        
+        CVO = cvpartition(iscancer,'kfold',20); %Go with 4 since we have at least 1 sample for each class
+        err = zeros(CVO.NumTestSets,1);
+        cp_arr=zeros(CVO.NumTestSets,1);
+        cfmat = cell(CVO.NumTestSets,1);
+        classifiertype = 2;
+        accum_varimp = zeros(1,size(textonfeat,2));%Variable importance
+        for i = 1:CVO.NumTestSets
+                  trIdx = CVO.training(i);
+                  teIdx = CVO.test(i);
+                  svmstruct = fitcsvm(X,Y,'KernelFunction','mysigmoid','Standardize',true);
+                  svmstruct = svmtrain(textonfeat(trIdx,:),iscancer(trIdx,:),'kernel_function','rbf');
+                  yout = svmclassify(svmstruct,textonfeat(teIdx,:));
+                  
+                  cp = classperf(iscancer(teIdx,:),yout);
+                  cp_arr(i)=cp.CorrectRate;
+                  cfmat{i,1} = confusionmat(iscancer(teIdx,:),yout);
+                  err(i) = sum(yout~=iscancer(teIdx))/length(yout);
+   
+                
+        end
+        
+        curcf = zeros(size(cfmat{1,1}));
+        for cfmatidx=1:size(cfmat,1)
+                 curcf = curcf + cfmat{cfmatidx,1};
+        end
+        curcf = curcf/kval;
+        curcf =curcf./repmat(sum(curcf,2),[1, size(curcf,2)]);
+        disp(['Stroma width: ' num2str(stromawidth), ', #training samples: ',num2str(CVO.TrainSize(1)),...
+            ', #testing samples: ',num2str(CVO.TestSize(1)),', TN: ', num2str(curcf(1,1)), 'TP: ', num2str(curcf(2,2))])
     end
 %end
 

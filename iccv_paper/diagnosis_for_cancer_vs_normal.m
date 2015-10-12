@@ -189,11 +189,43 @@
     
     %--Perform cancer vs non-cancer classification--
     %Generate the cancer and non-cancer label from the class label
+    kval = 10;
     for stromaidx = 1:nstromawidth
         stromawidth =  stromawidtharr(stromaidx);
         load(strcat(pwd,'/Basal_hist_data_at_different_window_size/cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'));
-        iscancer = cast(numericclass==3,'double')+cast(numericclass==4,'double');
-             
+        iscancer = (numericclass==3)|(numericclass==4);
+        %SVMModel = fitcsvm(textonfeat,iscancer,'KernelFunction','rbf','Standardize',true);
+        %[out_class,scores] = predict(SVMModel,textonfeat);
+        %error = sum(out_class==iscancer)/length(iscancer);
+        
+        CVO = cvpartition(iscancer,'kfold',20); %Go with 4 since we have at least 1 sample for each class
+        err = zeros(CVO.NumTestSets,1);
+        cp_arr=zeros(CVO.NumTestSets,1);
+        cfmat = cell(CVO.NumTestSets,1);
+        classifiertype = 2;
+        accum_varimp = zeros(1,size(textonfeat,2));%Variable importance
+        for i = 1:CVO.NumTestSets
+                  trIdx = CVO.training(i);
+                  teIdx = CVO.test(i);
+                  svmstruct = fitcsvm(textonfeat(trIdx,:),iscancer(trIdx,:),'KernelFunction','rbf','Standardize',true);
+                  yout = predict(svmstruct,textonfeat(teIdx,:));
+                  
+                  cp = classperf(iscancer(teIdx,:),yout);
+                  cp_arr(i)=cp.CorrectRate;
+                  cfmat{i,1} = confusionmat(iscancer(teIdx,:),yout);
+                  err(i) = sum(yout~=iscancer(teIdx))/length(yout);
+   
+                
+        end
+        
+        curcf = zeros(size(cfmat{1,1}));
+        for cfmatidx=1:size(cfmat,1)
+                 curcf = curcf + cfmat{cfmatidx,1};
+        end
+        curcf = curcf/kval;
+        curcf =curcf./repmat(sum(curcf,2),[1, size(curcf,2)]);
+        disp(['Stroma width: ' num2str(stromawidth), ', #training samples: ',num2str(CVO.TrainSize(1)),...
+            ', #testing samples: ',num2str(CVO.TestSize(1)),', TN: ', num2str(curcf(1,1)), 'TP: ', num2str(curcf(2,2))])
     end
 %end
 
