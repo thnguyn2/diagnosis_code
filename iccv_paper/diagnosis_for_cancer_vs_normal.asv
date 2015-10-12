@@ -182,51 +182,37 @@
     end
     
     nstromawidth = length(stromawidtharr);
-    %First, just load the auc for different cores and display the data
-    colorarr = 'rgbmk';
-    patternarr = 'o^*v';
-    figure(1);hold off;
-    
     %--Perform cancer vs non-cancer classification--
     %Generate the cancer and non-cancer label from the class label
     kval = 10;
+    nsamples = length(numericclass(:));
     for stromaidx = 1:nstromawidth
         stromawidth =  stromawidtharr(stromaidx);
         load(strcat(pwd,'/Basal_hist_data_at_different_window_size/cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'));
         iscancer = (numericclass==3)|(numericclass==4);
-        %SVMModel = fitcsvm(textonfeat,iscancer,'KernelFunction','rbf','Standardize',true);
-        %[out_class,scores] = predict(SVMModel,textonfeat);
-        %error = sum(out_class==iscancer)/length(iscancer);
+        %Search for optimal paramters for the SVM
+        c = cvpartition(nsamples,'KFold',10);
+        minfn = @(z)kfoldLoss(fitcsvm(textonfeat,iscancer,'CVPartition',c,...
+            'KernelFunction','rbf','Standardize',true,...
+            'BoxConstraint',exp(z(2)),'KernelScale',exp(z(1)))); %Use the misclassification error as the objective for parameter searching
+        options = psoptimset('Display','iter','UseParallel',true); % Display iterative output
+        [zmin fval] = patternsearch(minfn,randn(2,1),[],[],options);
+        %Now, go  with the minimizer found
+        svmstruct = fitcsvm(textonfeat,iscancer,'KernelFunction','rbf','Standardize',true,...
+            'BoxConstraint',exp(zmin(2)),'KernelScale',exp(zmin(1)));
+        yout = predict(svmstruct,textonfeat);
+        %Perform cross-validatition
+        CVSVMModel = crossval(svmstruct); %Perform cross-validation
+        %Compute mis-classification
+        misclass = kfoldLoss(CVSVMModel);
+        disp(['Stroma width: ' num2str(stromawidth),', Box constrain C: ', num2str(exp(zmin(2))), ', Kernel scale: ',...
+            num2str(exp(zmin(1))),', misclassification: ',num2str(misclass)])
+        [cf_mat,class] = confusionmat(CVSVMModel.Y,kfoldPredict(CVSVMModel));%Compute confusion matrices on the samples that was not used for training
+        cf_mat = cf_mat./repmat(sum(cf_mat,2),[1 2]);
+        disp(['Confusion matrix on testing data: ']);
+        cf_mat
+        %Compute the confusion matrix 
         
-        CVO = cvpartition(iscancer,'kfold',20); %Go with 4 since we have at least 1 sample for each class
-        err = zeros(CVO.NumTestSets,1);
-        cp_arr=zeros(CVO.NumTestSets,1);
-        cfmat = cell(CVO.NumTestSets,1);
-        classifiertype = 2;
-        accum_varimp = zeros(1,size(textonfeat,2));%Variable importance
-        for i = 1:CVO.NumTestSets
-                  trIdx = CVO.training(i);
-                  teIdx = CVO.test(i);
-                  svmstruct = fitcsvm(X,Y,'KernelFunction','mysigmoid','Standardize',true);
-                  svmstruct = svmtrain(textonfeat(trIdx,:),iscancer(trIdx,:),'kernel_function','rbf');
-                  yout = svmclassify(svmstruct,textonfeat(teIdx,:));
-                  
-                  cp = classperf(iscancer(teIdx,:),yout);
-                  cp_arr(i)=cp.CorrectRate;
-                  cfmat{i,1} = confusionmat(iscancer(teIdx,:),yout);
-                  err(i) = sum(yout~=iscancer(teIdx))/length(yout);
-   
-                
-        end
-        
-        curcf = zeros(size(cfmat{1,1}));
-        for cfmatidx=1:size(cfmat,1)
-                 curcf = curcf + cfmat{cfmatidx,1};
-        end
-        curcf = curcf/kval;
-        curcf =curcf./repmat(sum(curcf,2),[1, size(curcf,2)]);
-        disp(['Stroma width: ' num2str(stromawidth), ', #training samples: ',num2str(CVO.TrainSize(1)),...
-            ', #testing samples: ',num2str(CVO.TestSize(1)),', TN: ', num2str(curcf(1,1)), 'TP: ', num2str(curcf(2,2))])
     end
 %end
 
