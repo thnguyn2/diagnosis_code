@@ -1,7 +1,4 @@
-*.pptx
-*.log
 *.m~*
-*.mat
 /trainedclassifier/*.mat
 /Non-relevant old code/*.mat
 /iccv_mat/*.mat
