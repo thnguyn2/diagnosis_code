@@ -8,7 +8,7 @@
     clc;
     %clear all;
     close all;
-    datafolder = 'V:/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    datafolder = '~/Documents/Important_stuffs/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
     addpath('../support');
     g3folder =strcat(datafolder,'g3/');
     nmfolder = strcat(datafolder,'nm/');
@@ -185,34 +185,86 @@
     %--Perform cancer vs non-cancer classification--
     %Generate the cancer and non-cancer label from the class label
     kval = 10;
-    nsamples = length(numericclass(:));
-    for stromaidx = 1:nstromawidth
-        stromawidth =  stromawidtharr(stromaidx);
-        load(strcat(pwd,'/Basal_hist_data_at_different_window_size/cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'));
-        iscancer = (numericclass==3)|(numericclass==4);
-        %Search for optimal paramters for the SVM
-        c = cvpartition(nsamples,'KFold',20);
-        minfn = @(z)kfoldLoss(fitcsvm(textonfeat,iscancer,'CVPartition',c,...
-            'KernelFunction','rbf','Standardize',true,...
-            'BoxConstraint',exp(z(2)),'KernelScale',exp(z(1)))); %Use the misclassification error as the objective for parameter searching
-       % options = psoptimset('UseParallel',true); % Display iterative output
-        [zmin fval] = patternsearch(minfn,randn(2,1),[],[]);
-        %Now, go  with the minimizer found
-        svmstruct = fitcsvm(textonfeat,iscancer,'KernelFunction','rbf','Standardize',true,...
-            'BoxConstraint',exp(zmin(2)),'KernelScale',exp(zmin(1)));
-        yout = predict(svmstruct,textonfeat);
-        %Perform cross-validatition
-        CVSVMModel = crossval(svmstruct); %Perform cross-validation
-        %Compute mis-classification
-        misclass = kfoldLoss(CVSVMModel);
-        disp(['Stroma width: ' num2str(stromawidth),', Box constrain C: ', num2str(exp(zmin(2))), ', Kernel scale: ',...
-            num2str(exp(zmin(1))),', misclassification: ',num2str(misclass)])
-        [cf_mat,class] = confusionmat(CVSVMModel.Y,kfoldPredict(CVSVMModel));%Compute confusion matrices on the samples that was not used for training
-        cf_mat = cf_mat./repmat(sum(cf_mat,2),[1 2]);
-        disp(['Confusion matrix on testing data: ']);
-        cf_mat
-        %Compute the confusion matrix 
-        
+    try_svm = 1;
+    try_knn = 0;
+    if (try_svm)
+        %for stromaidx = 1:nstromawidth
+        for stromaidx = 9:9
+            stromawidth =  stromawidtharr(stromaidx);
+            load(strcat(pwd,'/Basal_hist_data_at_different_window_size/cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'));
+            nsamples = length(numericclass(:));
+            iscancer = (numericclass==3)|(numericclass==4);
+            %Search for optimal paramters for the SVM
+            c = cvpartition(nsamples,'KFold',10);
+            minfn = @(z)kfoldLoss(fitcsvm(textonfeat,iscancer,'CVPartition',c,...
+                'KernelFunction','rbf','Standardize',true,...
+                'BoxConstraint',exp(z(2)),'KernelScale',exp(z(1)))); %Use the misclassification error as the objective for parameter searching
+           % options = psoptimset('UseParallel',true); % Display iterative output
+            [zmin fval] = patternsearch(minfn,[1 1],[],[]);
+            %Now, go  with the minimizer found
+            svmstruct = fitcsvm(textonfeat,iscancer,'KernelFunction','rbf','Standardize',true,...
+                'BoxConstraint',exp(zmin(2)),'KernelScale',exp(zmin(1)));
+            %Perform cross-validatition
+            CVSVMModel = crossval(svmstruct); %Perform cross-validation
+            %Compute mis-classification
+            misclass = kfoldLoss(CVSVMModel);
+            disp(['Stroma width: ' num2str(stromawidth), ', misclassification: ',num2str(misclass)])
+            [yout, scores] = kfoldPredict(CVSVMModel);
+            [cf_mat,class] = confusionmat(CVSVMModel.Y,yout);%Compute confusion matrices on the samples that was not used for training
+            cf_mat = cf_mat./repmat(sum(cf_mat,2),[1 2]);
+            disp(['Confusion matrix on testing data: ']);
+            cf_mat
+            %Compute the confusion matrix 
+            [x_roc,y_roc,t,auc] = perfcurve(CVSVMModel.Y,scores(:,2),true);
+            figure(1);
+            plot(x_roc,y_roc,'k');
+            hold on;
+            xlabel('False positive (1-specificity)');
+            ylabel('True positive (sensitivity)');
+            disp(['Current AUC: ' num2str(auc)]);
+        end
     end
+    
+    if (try_knn)
+        %for stromaidx = 1:nstromawidth
+        for stromaidx = 2:2
+            stromawidth =  stromawidtharr(stromaidx);
+            load(strcat(pwd,'/Basal_hist_data_at_different_window_size/cancer_vs_normal_texton_feat_around_stroma_dist_',num2str(stromawidth),'.mat'));
+            nsamples = length(numericclass(:));
+            iscancer = (numericclass==3)|(numericclass==4);
+            c = cvpartition(nsamples,'KFold',10);
+            
+            knn3=fitcknn(textonfeat,iscancer,...
+                'NumNeighbors',3,'Standardize',true); %Use the misclassification error as the objective for parameter searching
+            knn5=fitcknn(textonfeat,iscancer,...
+                'NumNeighbors',5,'Standardize',true); %Use the misclassification error as the objective for parameter searching
+            CVknn3 = crossval(knn3,'kfold',10); %Perform cross-validation
+            misclass3 = kfoldLoss(CVknn3);
+            CVknn5 = crossval(knn5,'kfold',10); %Perform cross-validation
+            misclass5 = kfoldLoss(CVknn5);
+            disp(['Stroma width: ' num2str(stromawidth),', Box constrain C: ', num2str(exp(zmin(2))), ', Kernel scale: ',...
+                num2str(exp(zmin(1))),', misclass. (3-NN): ',num2str(misclass3), ', (5-NN): ', num2str(misclass5)]);
+            [yout, scores3] = kfoldPredict(CVknn3);
+            [x_roc3,y_roc3,t,auc3] = perfcurve(CVknn3.Y,scores3(:,2),true);
+            [yout, scores5] = kfoldPredict(CVknn5);
+            [x_roc5,y_roc5,t,auc5] = perfcurve(CVknn5.Y,scores5(:,2),true);
+  
+            figure(1);
+            plot(x_roc3,y_roc3,'r');
+            hold on;
+            plot(x_roc5,y_roc5,'b');
+            hold off;
+            legend('SVM',strcat('3-NN'),strcat('5-NN'))
+            xlabel('False positive (1-specificity)');
+            ylabel('True positive (sensitivity)');
+            disp(['Current AUC (3-NN): ' num2str(auc3), ', (5-NN): ', num2str(auc5)]);;
+            
+        end
+    end
+    
+    %Create linkage map for the dendrogram
+    Z = linkage(textonfeat,'ward','euclidean');
+    figure(1);
+    dendrogram(Z,size(textonfeat,1),'colorthreshold','default');
 %end
 
