@@ -262,9 +262,43 @@
         end
     end
     
-    %Create linkage map for the dendrogram
-    Z = linkage(textonfeat,'ward','euclidean');
-    figure(1);
-    dendrogram(Z,size(textonfeat,1),'colorthreshold','default');
+    %Perform Linear discriminant analysis on the cancer vs benign data and
+    %display them as scatter plot
+     cancer_feat = textonfeat(find(iscancer==1),:);
+     nm_feat = textonfeat(find((numericclass==0)|(numericclass==-1)),:);
+     hgp_feat = textonfeat(find(numericclass==-2),:);
+     sca=cov(cancer_feat);
+     snm=cov(nm_feat);
+     shg=cov(hgp_feat);
+     sw = sca+snm+shg;
+     nca = size(cancer_feat,1);
+     nnm = size(nm_feat,1);
+     nhg = size(hgp_feat,1);
+
+    %Compute the average vector
+    mu=mean(textonfeat,1)';
+    muca=mean(cancer_feat,1)';
+    munm=mean(nm_feat,1)';
+    muhg=mean(hgp_feat,1)';
+    sb=nca*(muca-mu)*(muca-mu)'+nnm*(munm-mu)*(munm-mu)'+nhg*(muhg-mu)*(muhg-mu)';
+    [w,value,flags]=eig(sb,sw);
+    w = w(:,2:3);
+    ca_coord = w'*cancer_feat';
+    nm_coord = w'*nm_feat';
+    hgp_coord = w'*hgp_feat';
+
+    
+    figure(3);
+    hold off;
+    plot(nm_coord(1,:),nm_coord(2,:),'og');
+    hold on;
+    plot(hgp_coord(1,:),hgp_coord(2,:),'oy');
+    hold on;
+    plot(ca_coord(1,:),ca_coord(2,:),'or');
+    xlabel('Projected coordinate 1');
+    ylabel('Projected coordinate 2');
+    legend('Normal','HGPIN','Cancer');
+   
+    
 %end
 
