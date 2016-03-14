@@ -8,7 +8,7 @@
     clc;
     %clear all;
     close all;
-    datafolder = '~/Documents/Important_stuffs/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    datafolder = '/Volumes/New_Athena/Dino_data/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
     addpath('../support');
     g3folder =strcat(datafolder,'g3/');
     nmfolder = strcat(datafolder,'nm/');
@@ -185,7 +185,7 @@
     %--Perform cancer vs non-cancer classification--
     %Generate the cancer and non-cancer label from the class label
     kval = 10;
-    try_svm = 1;
+    try_svm = 0;
     try_knn = 0;
     if (try_svm)
         %for stromaidx = 1:nstromawidth
@@ -290,14 +290,112 @@
     
     figure(3);
     hold off;
-    plot(nm_coord(1,:),nm_coord(2,:),'og');
+    plot(nm_coord(1,:),nm_coord(2,:),'og','linewidth',2);
     hold on;
-    plot(hgp_coord(1,:),hgp_coord(2,:),'oy');
+    plot(hgp_coord(1,:),hgp_coord(2,:),'ob','linewidth',2);
     hold on;
-    plot(ca_coord(1,:),ca_coord(2,:),'or');
+    plot(ca_coord(1,:),ca_coord(2,:),'or','linewidth',2);
     xlabel('Projected coordinate 1');
     ylabel('Projected coordinate 2');
     legend('Normal','HGPIN','Cancer');
+    
+    meas = [nm_coord';ca_coord';hgp_coord'];
+    species = [0*ones(size(nm_coord,2),1);ones(size(ca_coord,2),1);2*ones(size(hgp_coord,2),1)]; %Green blue rad
+
+    %Draw classification domain
+    feat_min = min(meas,[],1);
+    feat_max = max(meas,[],1);
+    nrows = 200;
+    ncols = 100;
+    x_arr = linspace(feat_min(1),feat_max(1),ncols);
+    y_arr = linspace(feat_min(2),feat_max(2),nrows);
+    [x,y]=meshgrid(x_arr,y_arr);
+    concat_coord = [x(:) y(:)];
+    [conf, pred_class] = multisvm(meas,species,concat_coord);
+    
+ 
+    pred_class_im = reshape(pred_class,[nrows ncols]);
+    
+    %Convert the label image into red (HGPIN), green (NM) and blue (Tumor)
+    
+    temp = repmat(reshape([1;0.8;0.8],[1 1 3]),nrows,ncols,1).*repmat((pred_class_im==2),[1 1 3])+...%light red for HGPIN
+           repmat(reshape([0.95;1;0.95],[1 1 3]),nrows,ncols,1).*repmat((pred_class_im==0),[1 1 3])+...%Light green for normal
+           repmat(reshape([0.9;0.9;1],[1 1 3]),nrows,ncols,1).*repmat((pred_class_im==1),[1 1 3]); %Light blue for tumor
+    figure(4);
+    %Generate
+    %Display the point
+    image(x_arr,y_arr,temp);
+    hold on;
+    plot(nm_coord(1,:),nm_coord(2,:),'.g','markersize',20)
+    plot(hgp_coord(1,:),hgp_coord(2,:),'.r','markersize',20);
+    plot(ca_coord(1,:),ca_coord(2,:),'.b','markersize',20);
+    xlabel('Discriminant feature 1');
+    ylabel('Discriminant feature 2');
+    
+    
+    %Compute confusion matrices for Leave-one-out cross-validataion
+    pred_class_loo = zeros(length(species),1);
+    all_sample_idx = 1:length(species);
+    for sampleidx = 1:length(species)
+        disp(['Working at sample: ' num2str(sampleidx) '/' num2str(length(species))]);
+        trainingidx = setdiff(all_sample_idx,sampleidx);
+        [~,pred_class_loo(sampleidx)]=multisvm(meas(trainingidx,:),species(trainingidx),meas(sampleidx,:));
+    end
+     %Compute the confusion matrix
+    C = confusionmat(species,pred_class_loo);
+    disp(['Confusion matrix for the the 1-vs-all multi-class SVM (L-O-O validation)']);
+    C = C./repmat(sum(C,2),[1 size(C,2)])
+    figure(5);
+    imagesc(C,[0 1]);colormap hot;colorbar
+    
+   
+    
+    %Draw the separation boundary for cancer vs non-cancer. Set cancer to
+    %class 1 and HPGIN/Benign to class 0
+    meas = [nm_coord';ca_coord';hgp_coord'];
+    species = [0*ones(size(nm_coord,2),1);ones(size(ca_coord,2),1);0*ones(size(hgp_coord,2),1)]; %Green blue rad
+    [conf, pred_class] = multisvm(meas,species,concat_coord);
+    
+ 
+    pred_class_im = reshape(pred_class,[nrows ncols]);
+    
+    %Convert the label image into red (HGPIN), green (NM) and blue (Tumor)
+    
+    temp = repmat(reshape([1;0.8;0.8],[1 1 3]),nrows,ncols,1).*repmat((pred_class_im==2),[1 1 3])+...%light red for HGPIN
+           repmat(reshape([0.95;1;0.95],[1 1 3]),nrows,ncols,1).*repmat((pred_class_im==0),[1 1 3])+...%Light green for normal
+           repmat(reshape([0.9;0.9;1],[1 1 3]),nrows,ncols,1).*repmat((pred_class_im==1),[1 1 3]); %Light blue for tumor
+    figure(4);
+    %Generate
+    %Display the point
+    image(x_arr,y_arr,temp);
+    hold on;
+    plot(nm_coord(1,:),nm_coord(2,:),'.g','markersize',20)
+    plot(hgp_coord(1,:),hgp_coord(2,:),'.g','markersize',20);
+    plot(ca_coord(1,:),ca_coord(2,:),'.b','markersize',20);
+    xlabel('Discriminant feature 1');
+    ylabel('Discriminant feature 2');
+    
+     %Compute confusion matrices for Leave-one-out cross-validataion
+    pred_class_loo = zeros(length(species),1);
+    all_sample_idx = 1:length(species);
+    for sampleidx = 1:length(species)
+        disp(['Working at sample: ' num2str(sampleidx) '/' num2str(length(species))]);
+        trainingidx = setdiff(all_sample_idx,sampleidx);
+        [~,pred_class_loo(sampleidx)]=multisvm(meas(trainingidx,:),species(trainingidx),meas(sampleidx,:));
+    end
+    
+    %Compute the confusion matrix
+    C = confusionmat(species,pred_class_loo);
+    disp(['Confusion matrix for the the 1-vs-all multi-class SVM']);
+    C = C./repmat(sum(C,2),[1 size(C,2)])
+    figure(5);
+    imagesc(C,[0 1]);colormap hot;colorbar
+    
+    
+    %Plot the class for each data
+    
+    %Draw the separation boundary for cancer vs non-cancer
+   
    
     
 %end

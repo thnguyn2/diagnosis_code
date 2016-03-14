@@ -3,8 +3,8 @@
 clear all;
 close all;
 clc;
-labelfilename = 'G:\TMA_cores_and_diagnosis\dHGPIN\AA4_seg_multi_res_3072_strict_hf.tif';
-grayscalefilename = 'G:\TMA_cores_and_diagnosis\dHGPIN\AA4_small.tif';
+labelfilename = 'C:\Users\thnguyn2\OneDrive\optics materials\Cancer diagnosis\Figures used for papers\W17_seg_multi_res_3072_strict_hf.tif';
+grayscalefilename = 'C:\Users\thnguyn2\OneDrive\optics materials\Cancer diagnosis\Figures used for papers\W17_small.tif';
 labelim = imread(labelfilename);
 grayim = imread(grayscalefilename);
 grayim = cast(grayim/256,'single');
@@ -25,4 +25,4 @@ imagesc(labelim);
 figure(2);
 imagesc(grayim);
 figure(3);
-imagesc(overlaidim);
+imagesc(overlaidim);truesize;

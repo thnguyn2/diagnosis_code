@@ -22,7 +22,8 @@ function res=extract_histogram_from_a_single_core_g3_vs_nm(curfilename,textonhis
         ncols = c2-c1+1;
         [x,y]=meshgrid([c1:c2],[r1:r2]);   
         lblim = imread(curfilename);
-        glandim = (lblim==1);            
+        glandim = (lblim==1);          
+        glandim = imfill(glandim,'hole');
         stromaim = (lblim==2);
         %Extracting areas around the glands and look at the histogram
         glandstrand2=imdilate(glandim,strel('disk',param.basalwidth))-imerode(glandim,strel('disk',param.basalwidth));

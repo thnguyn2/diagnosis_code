@@ -7,7 +7,7 @@ function extract_histogram_of_texton_in_boundary_region
     clc;
     clear all;
     %close all;
-    datafolder = 'V:/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    datafolder = 'E:\Dino_data\TMA_cores_and_diagnosis\diagnosis_of_vicky\';
     addpath('../support');
     g3folder =strcat(datafolder,'g3/');
     g4folder =strcat(datafolder,'g4/');
@@ -15,7 +15,7 @@ function extract_histogram_of_texton_in_boundary_region
     hgpfolder =strcat(datafolder,'hgp/');
     bphfolder = strcat(datafolder,'bph/');
 
-    texton_hist_folder = 'V:/TMA_cores_and_diagnosis/texdir/'
+    texton_hist_folder = 'E:\Dino_data\TMA_cores_and_diagnosis/texdir/'
     g3files = dir(strcat(g3folder,'*_lbl_*g3.tif'));
     g4files = dir(strcat(g4folder,'*_lbl_*g4.tif'));
     nmfiles = dir(strcat(nmfolder,'*_lbl_*nm.tif'));
@@ -36,7 +36,7 @@ function extract_histogram_of_texton_in_boundary_region
     ntextons = 50;
     
     stromawidtharr = [200];
-    re_obtain_histogram_data = 0;
+    re_obtain_histogram_data = 1;
     nstromawidth = length(stromawidtharr);
     normaltexthist = zeros(0,ntextons);
     g3texthist = zeros(0,ntextons);
@@ -45,7 +45,7 @@ function extract_histogram_of_texton_in_boundary_region
     hgptexthist = zeros(0,ntextons);
     
     numberofhistogramperroi = 80000;% The number of histogram we take per ROI
-    reupdatebasalhist = 0;
+    reupdatebasalhist = 1;
     if (re_obtain_histogram_data)
         for stromawidthidx = 1:nstromawidth
             stromawidth = stromawidtharr(stromawidthidx);
@@ -53,7 +53,7 @@ function extract_histogram_of_texton_in_boundary_region
             param.glswstd = 25; %Ls and g windows size
             param.stromawidth = stromawidth;
             param.cleftingwidth =90;
-            param.basalwidth=50;
+            param.basalwidth=10;
             ntextons = 50;
             textonfeat = zeros(0,ntextons);
             iter = 0 ;
@@ -98,7 +98,7 @@ function extract_histogram_of_texton_in_boundary_region
                     disp(['G3 - ' g3files(idx).name]);
                     if ((~exist(filename2save,'file'))|( reupdatebasalhist))
                          res=extract_histogram_from_a_single_core_g3_vs_nm(curg3filename,texton_hist_filename,roi_cord_filename,param);
-                         save(filename2save,'res','-v7.3'); %Save the current response
+                         %save(filename2save,'res','-v7.3'); %Save the current response
                     else
                         temp=load(filename2save,'res');
                         res = temp.res;
@@ -134,7 +134,7 @@ function extract_histogram_of_texton_in_boundary_region
                     disp(['G4 - ' g4files(idx).name]);
                     if ((~exist(filename2save,'file'))|(reupdatebasalhist))
                          res=extract_histogram_from_a_single_core_g3_vs_nm(curg4filename,texton_hist_filename,roi_cord_filename,param);
-                         save(filename2save,'res','-v7.3'); %Save the current response
+                         %save(filename2save,'res','-v7.3'); %Save the current response
                     else
                         temp=load(filename2save,'res');
                         res = temp.res;
@@ -169,7 +169,7 @@ function extract_histogram_of_texton_in_boundary_region
                     disp(['NM - ' nmfiles(idx).name]);
                     if ((~exist(filename2save,'file'))|(reupdatebasalhist))
                         res=extract_histogram_from_a_single_core_g3_vs_nm(curnmfilename,texton_hist_filename,roi_cord_filename,param);
-                        save(filename2save,'res','-v7.3'); %Save the current response
+                        %save(filename2save,'res','-v7.3'); %Save the current response
                     else
                         temp=load(filename2save,'res');
                         res = temp.res;
@@ -205,7 +205,7 @@ function extract_histogram_of_texton_in_boundary_region
                     disp(['BPH - ' bphfiles(idx).name]);
                     if ((~exist(filename2save,'file'))|(reupdatebasalhist))
                          res=extract_histogram_from_a_single_core_g3_vs_nm(curbphfilename,texton_hist_filename,roi_cord_filename,param);
-                         save(filename2save,'res','-v7.3'); %Save the current response
+                         %save(filename2save,'res','-v7.3'); %Save the current response
                     else
                         temp=load(filename2save,'res');
                         res = temp.res;
@@ -241,7 +241,7 @@ function extract_histogram_of_texton_in_boundary_region
                     disp(['hgp - ' hgpfiles(idx).name]);
                     if ((~exist(filename2save,'file'))|(reupdatebasalhist))
                          res=extract_histogram_from_a_single_core_g3_vs_nm(curhgpfilename,texton_hist_filename,roi_cord_filename,param);
-                         save(filename2save,'res','-v7.3'); %Save the current response
+                         %save(filename2save,'res','-v7.3'); %Save the current response
                     else
                         temp=load(filename2save,'res');
                         res = temp.res;
@@ -262,9 +262,9 @@ function extract_histogram_of_texton_in_boundary_region
                 end
 
             end
-             save(strcat(texton_hist_folder,'basal_texton_hist_60_.mat'),'nmbasaltextonhist',...
-                 'hgpbasaltextonhist','bphbasaltextonhist','g3basaltextonhist','g4basaltextonhist','nmglandtextonhist',...
-                 'hgpglandtextonhist','bphglandtextonhist','g3glandtextonhist','g4glandtextonhist','-v7.3')
+            % save(strcat(texton_hist_folder,'basal_texton_hist_60_.mat'),'nmbasaltextonhist',...
+            %     'hgpbasaltextonhist','bphbasaltextonhist','g3basaltextonhist','g4basaltextonhist','nmglandtextonhist',...
+            %     'hgpglandtextonhist','bphglandtextonhist','g3glandtextonhist','g4glandtextonhist','-v7.3')
         end
     end
     

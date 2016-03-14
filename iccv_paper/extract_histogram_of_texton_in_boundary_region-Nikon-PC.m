@@ -7,7 +7,7 @@ function demo
     clc;
     clear all;
     %close all;
-    datafolder = 'H:\TMA_cores_and_diagnosis\diagnosis_of_vicky\';
+    datafolder = 'E:\Dino_data\TMA_cores_and_diagnosis\diagnosis_of_vicky\';
     addpath('..\support');
     g3folder =strcat(datafolder,'g3\');
     g4folder =strcat(datafolder,'g4\');
@@ -597,7 +597,3 @@ function demo
      end
 
 end
-
-
-    
-    
