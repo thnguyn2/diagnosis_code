@@ -2,8 +2,8 @@ function diagnosis_feature_analysis
     clc;
     clear all;
     close all;
-    addpath(strcat(cd(cd('..')),'\support'));
-    datapath = 'E:\TMA_cores_and_diagnosis\';
+    addpath(strcat(cd(cd('..')),'/support'));
+    datapath = '/Volumes/New_Athena/Dino_data/TMA_cores_and_diagnosis/';
     
   
     usecorediagnoisresult = 0; %If this setting is on, just find all the cores that Shamira has diagnosis results on it
@@ -22,13 +22,13 @@ function diagnosis_feature_analysis
                     cur_file_name = filenames2{classidx,1}{sampleIdx,1};
                     %Check to see if the label file exist
                     dot_pos = strfind(cur_file_name,'.'); %Get the position of the dot
-                    slash_pos = strfind(cur_file_name,'\');
+                    slash_pos = strfind(cur_file_name,'/');
                     label_name = cur_file_name(slash_pos(end)+1:dot_pos(1)-1);
                     samplename2{end+1,1}=label_name;
                end
         end
     end
-    save('filenameinfo.mat','filenames','glandnames','gradelist');
+    %save('filenameinfo.mat','filenames','glandnames','gradelist');
     mode = 'nogt'; %Go with the segmentation based on the groundtruth label ('gt') or no groundtruth_label ('nogt')
     %[textonfeat,classvect,samplename]=update_gland_texton_diagnosis_feature(filenames,strcat(datapath,'label\'),strcat(datapath,'texdir\'),mode,gradelist)
     %save('glandtextonfeat.mat','textonfeat','classvect','samplename');
@@ -78,9 +78,9 @@ function diagnosis_feature_analysis
     
    useavgfeature = 0;
    if (useavgfeature)
-    [mean2,mean3,mean4,mean5,std2,std3,std4,std5,cancergrade]=compute_feature_statistics_cancer_class(glandmorpfeat,classvect,true,samplename);%Draw the histogram of features for the cancer group
+        [mean2,mean3,mean4,mean5,std2,std3,std4,std5,cancergrade]=compute_feature_statistics_cancer_class(glandmorpfeat,classvect,true,samplename);%Draw the histogram of features for the cancer group
    else
-       [mean2,mean3,mean4,mean5,std2,std3,std4,std5,cancergrade]=compute_feature_statistics_cancer_class(corehist,classvect,true,samplename);%Draw the histogram of features for the cancer group
+        [mean2,mean3,mean4,mean5,std2,std3,std4,std5,cancergrade]=compute_feature_statistics_cancer_class(corehist,classvect,true,samplename);%Draw the histogram of features for the cancer group
    end
 %     
 %%     %Normalize w.r.t all classes so that the maximum value is 1

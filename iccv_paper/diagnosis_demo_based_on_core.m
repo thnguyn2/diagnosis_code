@@ -9,10 +9,10 @@
     clc;
     clear all;
     close all;
-    datafolder = 'E:\TMA_cores_and_diagnosis\diagnosis_of_vicky\';
-    addpath('..\support');
-    g3folder =strcat(datafolder,'g3\');
-    g4folder = strcat(datafolder,'g4\');
+    datafolder = '/Volumes/New_Athena/Dino_data/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    addpath('../support');
+    g3folder =strcat(datafolder,'g3/');
+    g4folder = strcat(datafolder,'g4/');
     g3files = dir(strcat(g3folder,'*_lbl_*g3.tif'));
     g4files = dir(strcat(g4folder,'*_lbl_*g4.tif'));
     n3 = size(g3files,1); %Number of G3 samples

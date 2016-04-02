@@ -32,7 +32,9 @@
     g3textonfeat=zeros(0,ntextons);
     g4textonfeat=zeros(0,ntextons);
     iter = 0 ;
-     tic;
+    tic;
+    g3name = cell(0,1);
+    g4name = cell(0,1);
     for idx=1:max(n3,n4)
         iter = iter+1;
         %Step 1: count the number of true glands and the number of lumen
@@ -43,6 +45,7 @@
         %map.
         if (idx<=n3)
             %g3files(idx).name = 'B9_lbl_1_g3.tif';
+            g3name{end+1,1}=g3files(idx).name;
             curg3filename = strcat(g3folder,g3files(idx).name);
             tic;
             res=process_single_core(curg3filename,param);
@@ -67,6 +70,7 @@
         end
         
         if (idx<=n4)
+            g4name{end+1,1}=g4files(idx).name;
             %g4files(idx).name = 'M4_lbl_2_g4.tif';
             curg4filename = strcat(g4folder,g4files(idx).name);
             
@@ -107,15 +111,36 @@
             auc_arr = zeros(nfeattype,1);
             x = cell(nfeattype,1);
             y = cell(nfeattype,1);
+            
+            %Compute the histogram of features
            if (iter>20)
                 for featidx=1:nfeattype
                         curfeat = feat(:,featidx);
+                        min_feat = min(curfeat);
+                        max_feat = max(curfeat);
+                        if max_
+                        d = max_feat - min_feat
+                        xval = linspace(min_feat-0.1*d,max_feat+0.1*d,15);
+                        disp(['Feature index: ' num2str(featidx)]);
+                        g3hist = hist(curfeat(1:curn3),xval)/curn3;
+                        g4hist = hist(curfeat(curn3+1:end),xval)/curn4;
+                        xval'
+                        g3hist'
+                        g4hist'
+                        figure(4);
+                        subplot(3,3,featidx);
+                        plot(xval,g3hist,'-r');hold on;
+                        plot(xval,g4hist,'-b');hold off;
+                        title(sprintf('Feature %s: ',featidx));
+                        
+                        
                         b = glmfit(curfeat,class,'normal');%Generalized linear model
                         p = glmval(b,curfeat,'logit');%Compute the fitted probability
                         [x{featidx},y{featidx},t,auc_arr(featidx)] = perfcurve(class,p,true);%Compute the ROC curve by providing the groundtruth
+                        figure(3);
                         plot(x{featidx},y{featidx},featcolor(mod(featidx-1,7)+1));
                         xlabel('False positive rate'); ylabel('True positive rate');
-                        hold on;                
+                        hold on;         
                         plot(x{featidx},y{featidx},strcat('--',featcolor(mod(featidx-1,7)+1)));
 
 
@@ -134,7 +159,10 @@
     end
     averageTime = toc/1000;
     disp(['Average extracting time' num2str(averageTime)]);
-    save('roidiag.mat','g3feat','g4feat','-v7.3');
+    save('roidiag.mat','g3feat','g4feat','g3name','g4name','-v7.3');
     
-%end
+    
+    %
+    
+end
 
