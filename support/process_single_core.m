@@ -12,32 +12,31 @@ function res=process_single_core(curfilename,param)
 %        res.mean_nlum: mean number of lumen;
 %        res.mean_dist: mean distortion of the gland
 
-        computelsandg = 0;
+        computelsandg = 1;
         displayinfooneachgland=1;
         if (computelsandg)
             %Compute ls and g.
             phasefilename = strcat(curfilename(1:end-12),'small',curfilename(end-8:end));
-            texidxname = strcat(curfilename(1:end-12),'texidx',curfilename(end-8:end));
             phasemap = cast(imread(phasefilename),'single');
-            texidx = imread(texidxname); %map of texton index
-            figure(4);
-            imagesc(phasemap);drawnow;
-            figure(5);
-            imagesc(texidx);drawnow;
+            phasemap = phasemap*4.0/65536-0.5;%Convert to phase
             [gx,gy]=gradient(phasemap); %Comute the gradient information
-            gmag2 = gx.^2+gy.^2;
-            h=fspecial('gaussian',[min(5*param.glswstd,45) min(5*param.glswstd,45)],param.glswstd);
+            gmag2 = (gx.^2+gy.^2)/(14)^2;%The factor in the back is 14 pixels/microns
+            h=fspecial('gaussian',[min(5*param.glswstd,40) min(5*param.glswstd,40)],param.glswstd);
+            h=h/sum(h);
             hzpad = zeros(size(phasemap));
             hzpad(1:size(h,1),1:size(h,2))=h;
             hzpad=circshift(hzpad,[-floor(size(h,1)/2) -floor(size(h,1)/2)]);
             hzpadf = fft2(hzpad);
             tic;
-            avggmag2 = fftshift(ifft2(fft2(gmag2).*hzpadf));
-            meanphase = fftshift(ifft2(fft2(phasemap).*hzpadf));
+            avggmag2 = real(ifft2(fft2(gmag2).*hzpadf));
+            meanphase = real(ifft2(fft2(phasemap).*hzpadf));
             diffphase2 = (phasemap-meanphase).^2;%Phase difference
-            phasevar = fftshift(ifft2(diffphase2.*hzpadf));
+            phasevar = real(ifft2(diffphase2.*hzpadf));
             ls = 1./phasevar;
-            g = avggmag2./phasevar.^2;
+            ko = 2*pi/0.57; %0.57 is the wavelength in microns
+            g = 1-avggmag2./(2*ko^2*(phasevar.^2+1e-6));
+            g = g.*(g>=0);
+            
         end
         
        
@@ -47,8 +46,23 @@ function res=process_single_core(curfilename,param)
         lblim = imread(curfilename);
         glandim = (lblim==1);
         glandimnohole = imfill(glandim,'holes');
+        glandboundary = imdilate(glandimnohole,strel('disk',20))-glandimnohole;
+        glandboundary = imresize(glandboundary,size(phasemap),'nearest');
+        glandboundaryidx = find(glandboundary==1);
+        
         lblimnohole = lblim|glandimnohole;
         res.roisize = sum(sum(lblimnohole~=0));
+        
+        
+        %This images is for displaying the computing area for glands
+        phase_rgb = zeros(size(phasemap,1),size(phasemap,2),3);
+        phasemap1 = phasemap;
+        phasemap1(glandboundaryidx)=max(phasemap(:));
+        phase_rgb(:,:,1)=phasemap1;
+        phasemap1(glandboundaryidx)=min(phasemap(:));
+        phase_rgb(:,:,2)=phasemap1;
+        phase_rgb(:,:,3)=phasemap1;
+        
         
         glandareas = regionprops(glandim,'Area');
         centroids = regionprops(glandim,'Centroid'); %Get the coordinate of all centroids
@@ -66,30 +80,6 @@ function res=process_single_core(curfilename,param)
         cir_arr = zeros(nglands,1);
         area_arr = zeros(nglands,1); %This is an array for areas of the glands
         distortion_arr = zeros(nglands,1); %Distortion aray = perimeter of the gland/(pi*gland equivalent diameter)
-%         figure(1);
-%         imagesc(lblim);
-        
-%         %Now extracting a thin layer of stroma surrounding each gland and
-%         %compute the ls and g around it
-       
-%         stromaim = (lblim==2);
-%         stromaimerode = imerode(stromaim,strel('disk',param.stromawidth));
-%         stromastrand = stromaim - stromaimerode;
-%         glandim = (lblim==1);%         
-%         glandexpanded = imdilate(glandim,strel('disk',param.cleftingwidth));
-%         glandstrand = glandexpanded - glandim;
-%         stromastrand=stromastrand.*glandstrand;
-%         stromastrand = bwareaopen(stromastrand,2000);%Eliminate too small area
-        
-%         figure(5);
-%         res.stromastrand = stromastrand;
-%         res.texidx = texidx;
-%         subplot(121);imagesc(stromastrand.*texidx);colorbar;drawnow;
-%         title('Stroma area for computing ls and g')
-%         stromaidx = find(stromastrand==1);
-%         res.mean_g = max(g(stromaidx));
-%         res.mean_ls = max(ls(stromaidx));
-%         res.hist_tex_idx = hist(texidx(stromaidx),[1:50])/length(stromaidx);%This is the histogram of texton in a stroma area surrounding the gland
        
         for glandidx=1:nglands
             solid_arr(glandidx,1)=solidity(glandidx).Solidity;
@@ -107,14 +97,7 @@ function res=process_single_core(curfilename,param)
                 cencoord=centroids(glandidx).Centroid;
                 xcoord = cencoord(1);
                 ycoord = cencoord(2);
-%                 figure(1);
-%                 %text(xcoord,ycoord,strcat(num2str(glandidx),', ',num2str(nlumen)));
-%                 text(xcoord,ycoord,num2str(num2str(nlumen_arr(glandidx))),'FontSize',12,'Color','m');
-%                 %text(xcoord,ycoord,num2str(distortion_arr(glandidx,1)),'FontSize',12,'Color','m');            
-%                 hold on;
             end
-%             g_arr(glandidx,1) = mean(g(curglandpixidx));
-%             ls_arr(glandidx,1)= mean(ls(curglandpixidx));
         end        
         res.nlumen_arr=nlumen_arr;
         res.distortion_arr = distortion_arr;
@@ -150,6 +133,10 @@ function res=process_single_core(curfilename,param)
         
         res.mean_cir = mean(cir_arr);
         res.med_cir = median(cir_arr);   
+        res.g_val_mean = mean(g(glandboundaryidx));
+        res.g_val_median = median(g(glandboundaryidx));
+        
+        
         
         averageTime = toc/1000;
         disp(['Average extracting time' num2str(averageTime)]);

@@ -23,7 +23,7 @@
     param.glswstd = 25; %Ls and g windows size
     param.stromawidth = 15;
     param.cleftingwidth =90;
-    nfeattype = 8;
+    nfeattype = 9;
     param.nbins = 3;
     param.nfeatwithhist=2;
     ntextons = 50;
@@ -64,7 +64,7 @@
                 figure(2);plot(res.ratio_area,res.mean_dist,'^b','linewidth',3);hold on;
                 text(res.ratio_area+0.0001,res.mean_dist,strcat(g3files(idx).name(1:slashpos(1)-1),'-',...
                     g3files(idx).name(slashpos(2)+1:slashpos(3)-1),sprintf('-%0.1f',res.roisize/1e+6)),'Color','b');
-                g3feat(end+1,:)=[res.mean_dist,res.mean_cir,res.mean_nlum,res.max_nlum,res.fused_ratio,res.med_dist,res.ratio_area,0];
+                g3feat(end+1,:)=[res.mean_dist,res.mean_cir,res.mean_nlum,res.max_nlum,res.fused_ratio,res.med_dist,res.ratio_area,res.g_val_mean,res.g_val_median];
                 %g3textonfeat(end+1,:)=res.hist_tex_idx(:)';
             end
         end
@@ -91,7 +91,7 @@
                     xlabel('stdarea of gland/mean area of gland');
                     ylabel('Mean distortion');
                 end
-                g4feat(end+1,:)=[res.mean_dist,res.mean_cir,res.mean_nlum,res.max_nlum,res.fused_ratio,res.med_dist,res.ratio_area,0];
+                g4feat(end+1,:)=[res.mean_dist,res.mean_cir,res.mean_nlum,res.max_nlum,res.fused_ratio,res.med_dist,res.ratio_area,res.g_val_mean,res.g_val_median];
                 %g4textonfeat(end+1,:)=res.hist_tex_idx(:)';
             end
         end
@@ -118,7 +118,6 @@
                         curfeat = feat(:,featidx);
                         min_feat = min(curfeat);
                         max_feat = max(curfeat);
-                        if max_
                         d = max_feat - min_feat
                         xval = linspace(min_feat-0.1*d,max_feat+0.1*d,15);
                         disp(['Feature index: ' num2str(featidx)]);
@@ -131,7 +130,7 @@
                         subplot(3,3,featidx);
                         plot(xval,g3hist,'-r');hold on;
                         plot(xval,g4hist,'-b');hold off;
-                        title(sprintf('Feature %s: ',featidx));
+                        title(sprintf('Feature %d: ',featidx));
                         
                         
                         b = glmfit(curfeat,class,'normal');%Generalized linear model
@@ -152,7 +151,7 @@
                 legend(strcat('Mean dist, AUC=',num2str(auc_arr(1))),strcat('Mean circ, AUC=',num2str(auc_arr(2))),strcat('Avg. #lumen, AUC=',num2str(auc_arr(3))),...
                             strcat('Max. nlumen AUC=',num2str(auc_arr(4))),strcat('Fused ratio. nlumen AUC=',num2str(auc_arr(5))),...
                             strcat('Med. dist, AUC=',num2str(auc_arr(6))),strcat('Std area/Mean area, AUC=',num2str(auc_arr(7))),...
-                            strcat('50/50 line, AUC=',num2str(auc_arr(8))),...
+                            strcat('Mean anisotropy, AUC=',num2str(auc_arr(8))),strcat('Median anisotropy, AUC=',num2str(auc_arr(9))),...
                             strcat('Combined, AUC=',num2str(auc)));
                 hold off;
           end
@@ -164,5 +163,5 @@
     
     %
     
-end
+
 
