@@ -8,7 +8,7 @@ clc;
 ntextons = 50;
 classf_type = 1;
 %Generate the data and train a classifier
-datapath = 'H:\TMA_cores_and_diagnosis\';
+datapath = 'E:\Dino_data\TMA_cores_and_diagnosis\';
 addpath(strcat(cd(cd('..')),'\support'));
 [filenames,glandnames,classname,tiffiles]=findFileNameFromROIs(datapath);
 svm_dir = strcat(datapath,'diag\'); %Path to store the data for SVM classifier

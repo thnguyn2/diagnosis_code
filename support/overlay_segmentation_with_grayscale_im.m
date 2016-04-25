@@ -3,8 +3,8 @@
 clear all;
 close all;
 clc;
-labelfilename = 'C:\Users\thnguyn2\OneDrive\optics materials\Cancer diagnosis\Figures used for papers\W17_seg_multi_res_3072_strict_hf.tif';
-grayscalefilename = 'C:\Users\thnguyn2\OneDrive\optics materials\Cancer diagnosis\Figures used for papers\W17_small.tif';
+labelfilename = 'C:\Users\thnguyn2\OneDrive\optics_materials\Cancer diagnosis\Figures used for papers\O2_seg_multi_res_3072_strict_hf.tif';
+grayscalefilename = 'C:\Users\thnguyn2\OneDrive\optics_materials\Cancer diagnosis\Figures used for papers\O2_small.tif';
 labelim = imread(labelfilename);
 grayim = imread(grayscalefilename);
 grayim = cast(grayim/256,'single');

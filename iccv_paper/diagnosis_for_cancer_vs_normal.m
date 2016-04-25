@@ -8,13 +8,14 @@
     clc;
     %clear all;
     close all;
-    datafolder = '/Volumes/New_Athena/Dino_data/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
-    addpath('../support');
-    g3folder =strcat(datafolder,'g3/');
-    nmfolder = strcat(datafolder,'nm/');
-    g4folder =strcat(datafolder,'g4/');
-    bphfolder = strcat(datafolder,'bph/');
-    hgpfolder = strcat(datafolder,'hgp/');
+    %datafolder = '/Volumes/New_Athena/Dino_data/TMA_cores_and_diagnosis/diagnosis_of_vicky/';
+    datafolder = 'E:\Dino_data\TMA_cores_and_diagnosis\diagnosis_of_vicky';
+    addpath('..\support');
+    g3folder =strcat(datafolder,'g3\');
+    nmfolder = strcat(datafolder,'nm');
+    g4folder =strcat(datafolder,'g4\');
+    bphfolder = strcat(datafolder,'bph\');
+    hgpfolder = strcat(datafolder,'hgp\');
   
     param.smallestlumenarea=5000;
     param.minglandarea = 5000;
@@ -185,7 +186,7 @@
     %--Perform cancer vs non-cancer classification--
     %Generate the cancer and non-cancer label from the class label
     kval = 10;
-    try_svm = 0;
+    try_svm = 1;
     try_knn = 0;
     if (try_svm)
         %for stromaidx = 1:nstromawidth
