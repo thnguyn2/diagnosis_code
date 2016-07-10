@@ -80,7 +80,8 @@ function res=process_single_core(curfilename,param)
         cir_arr = zeros(nglands,1);
         area_arr = zeros(nglands,1); %This is an array for areas of the glands
         distortion_arr = zeros(nglands,1); %Distortion aray = perimeter of the gland/(pi*gland equivalent diameter)
-       
+        fractal_arr = zeros(nglands,1);
+        
         for glandidx=1:nglands
             solid_arr(glandidx,1)=solidity(glandidx).Solidity;
             area_arr(glandidx,1)=glandareas(glandidx).Area;
@@ -89,9 +90,11 @@ function res=process_single_core(curfilename,param)
             cir_arr(glandidx,1)=perimeters(glandidx).Perimeter^2/(4*pi*glandareas(glandidx).Area);
             %Fill out the lumen area
             glandfill = imfill(curglandimage,'holes');
+            fractal_val=BoxCountfracDim(glandfill);
             lumenmap = im2bw(glandfill - curglandimage);
             nlumen = size(regionprops(lumenmap,'Area'),1);%Get the number of lumen regions inside the gland
             nlumen_arr(glandidx)=nlumen;
+            fractal_arr(glandidx)=fractal_val;
             if (displayinfooneachgland)
                 %Display the number of lumen for each image
                 cencoord=centroids(glandidx).Centroid;
@@ -110,6 +113,8 @@ function res=process_single_core(curfilename,param)
         %res.mean_nlum = sum(nlumen_arr.*area_arr)/sum(area_arr);
         res.mean_nlum = mean(nlumen_arr);
         res.max_nlum = max(nlumen_arr(:));
+        res.mean_fractal = mean(fractal_arr);
+        res.std_fractal = std(fractal_arr);
         %Compute the portion of fused glands
         total_fused_area = sum(area_arr(find(nlumen_arr>=2)));
         total_non_fused_area = sum(area_arr(find(nlumen_arr<=1)));
