@@ -5,11 +5,11 @@
 clc;
 clear all;
 close all;
-datapath = '/Volumes/New_Athena/Dino_data/TMA_cores_and_diagnosis/';
-texton_dir=strcat(datapath,'texdir/');
-label_dir=strcat(datapath,'label/');
+datapath = 'G:\TMA_cores_and_diagnosis\';
+texton_dir=strcat(datapath,'texdir\');
+label_dir=strcat(datapath,'label\');
 
-addpath(strcat(cd(cd('..')),'/support'));
+addpath(strcat(cd(cd('..')),'\support'));
 [filenames,glandnames,classlist]=findFileNameFromROIs(datapath);
 radius1 = 60;
 radius2 = 90;
@@ -24,8 +24,6 @@ stromathresh=0.57;
 %stromathresh=0.55;
 fullcf = zeros(3,3);
 colorarr = 'rbgykm';
-gland_area_arr = zeros(0,1);
-gland_accu_arr = zeros(0,1);
 for classidx=1:ngrades %Go through different classes
                nsamples = (length(filenames{classidx,1})); %Get the number of samples in each class
                classname = classlist{classidx};
@@ -35,7 +33,7 @@ for classidx=1:ngrades %Go through different classes
                for sampleIdx=1:nsamples
                     cur_file_name = filenames{classidx,1}{sampleIdx,1};
                     dot_pos = strfind(cur_file_name,'.'); %Get the position of the dot
-                    slash_pos = strfind(cur_file_name,'/');
+                    slash_pos = strfind(cur_file_name,'\');
                     label_name = cur_file_name(slash_pos(end)+1:dot_pos(1)-1);
                     disp(['Working on ' label_name ', Classidx: ' num2str(classidx) ', Sample Idx: ' num2str(sampleIdx)])
                     seg_im_name_bf1 = strcat(cur_file_name(1:end-4),'_seg_ws',num2str(radius1),'_fuzzy.tif');  
@@ -86,103 +84,44 @@ for classidx=1:ngrades %Go through different classes
                         %resolve small area of stroma
                         stromaidx2 = intersect(find(fmap_1>0.6),non_det_idx);
                         lblim_bf(stromaidx2)=2;
-                        nonlumenidx = find(lblim_bf~=0);
-                        curscore=fmap_2(nonlumenidx);
-                        curlabelmap = lblim(nonlumenidx);
-                        allscore(end+1:end+length(nonlumenidx))=curscore(:);
-                        alllabel(end+1:end+length(nonlumenidx))=curlabelmap(:);
                         
                         figure(2)
                         subplot(121);imagesc(lblim_bf);title('Current multi-res segmentation');drawnow;
                         subplot(122);imagesc(lblim);title('Ground truth');drawnow;
+                        [cm,gorder] = confusionmat(lblim(:),lblim_bf(:));
+                        nonlumenidx = find(lblim_bf~=0);
                         writeTIFF(lblim_bf,seg_im_name);
                         writeTIFF(lblim,seg_im_name_gt);
-                    
                         
-                    
-                    end
-                    
-                    if (exist(seg_im_name_gt,'file')&exist(seg_im_name,'file'))
-                    
-                        lblim = imread(seg_im_name_gt);
-                        lblim_bf = imread(seg_im_name);
-
-                        [cm,gorder] = confusionmat(lblim(:),lblim_bf(:));
+                        curscore=fmap_2(nonlumenidx);
+                        curlabelmap = lblim(nonlumenidx);
+                        allscore(end+1:end+length(nonlumenidx))=curscore(:);
+                        alllabel(end+1:end+length(nonlumenidx))=curlabelmap(:);
                         curcf = curcf+cm;  
-                        curcf_disp = curcf./repmat(sum(curcf,2),1,3);                   
-                        disp(['Total number of pixels: ' num2str(sum(sum(curcf)))])
-                        figure(1);
-                        imagesc(curcf_disp);title('Current confusion matrix'); colorbar;drawnow;
-
-                        %Compute grandsize vs accuracy
-                        figure(1);
-                        subplot(121);imagesc(lblim);
-                        subplot(122);imagesc(lblim_bf);
-                        glandmap = imfill(lblim==1,'hole');
-                        glandpixidxlist = regionprops(glandmap,'PixelIdxList');
-                        nglands_org = size(glandpixidxlist,1);
-                        for glandidx = 1:nglands_org
-                           %Get the number of pixels in each glands
-                           pixlist=glandpixidxlist(glandidx).PixelIdxList;
-                           npix = length(pixlist);
-                           if (npix>20000)
-                                cur_accu = sum(lblim(pixlist)==lblim_bf(pixlist))/npix;
-                                gland_area_arr(end+1)=npix;
-                                gland_accu_arr(end+1)=cur_accu;
-                           end
-                        end
-                        min_area = min(gland_area_arr);
-                        max_area = 0.15*max(gland_area_arr);
-                        nbins = 50;
-                        area_arr = linspace(min_area,max_area,nbins);
-                        [area_hist,area_coord]=hist(gland_area_arr,area_arr);
-                        area_hist = area_hist/max(area_hist(:));
-                        gland_accu_hist = zeros(1,nbins);
-                        %Compute the bin_idx for each datasample
-                        bin_area_size = (max_area-min_area)/nbins;
-                        gland_bin_idx = min(round((gland_area_arr-min_area)/bin_area_size+0.5),nbins);
-                        for binidx=1:nbins
-                            curidx = find(gland_bin_idx==binidx);
-                            if (~isempty(curidx))
-                                gland_accu_hist(binidx)=mean(gland_accu_arr(curidx));
-                            end
-                        end
-%                         [sorted_area,I] = sort(gland_area_arr,'descend');
-%                            sorted_accu = gland_accu_arr(I);
-%                            %Draw the frequency of the area
-%                            
-%                            [hist_val,area_coord]=hist(sorted_area,nbins);
-%                            hist_val = hist_val/max(hist_val);
-                            figure(2);
-                            plot(area_coord,area_hist,'-b','linewidth',2);hold on;
-%                            nglandsperinterval = ceil(length(sorted_accu)/nbins);
-%                            mean_accu_hist =imresize(sorted_accu,[1 nbins]);
-                            figure(2);
-                            plot(area_coord,gland_accu_hist,'-r','linewidth',2);hold off;
-                            legend('Area frequency','Accuracy');
-                            drawnow;
+                
                     end
+                    curcf_disp = curcf./repmat(sum(curcf,2),1,3);                   
+                    disp(['Total number of pixels: ' num2str(sum(sum(curcf)))])
+                    figure(1);
+                    imagesc(curcf_disp);title('Current confusion matrix'); colorbar;drawnow;
                end
                curcf_disp
 %                nsamplesmax = min(100000,length(alllabel(:)));
 %                p = randperm(length(alllabel(:)));
 %                alllabel = alllabel(p(1:nsamplesmax));
 %                allscore = allscore(p(1:nsamplesmax));
-%                
-%                [xs,ys,t,auc]=perfcurve(alllabel,allscore,2);
+               
+               %[xs,ys,t,auc]=perfcurve(alllabel,allscore,2);
 %                figure(3);
 %                plot(xs,ys,colorarr(mod(classidx,6)+1));
 %                xlabel('Threshold');
 %                xlabel('P_F (stroma)'); ylabel('P_D (gland)');
                 
 
-               %save(strcat('./confusionmatrices/',classname,'cf.mat'),'curcf','curcf_disp','xs','ys','t','auc');
+               %save(strcat('.\confusionmatrices\',classname,'cf.mat'),'curcf','curcf_disp','xs','ys','t','auc');
 %               fullcf = fullcf + curcf;
-
-               %
                
-end
-save('area_vs_accuracy.mat','area_coord','area_hist','gland_accu_hist','gland_area_arr','gland_accu_arr');
+   end
 %  fullcf_disp = fullcf./repmat(sum(fullcf,2),1,3);
   %save(strcat('.\confusionmatrices\fullcf.mat'),'fullcf','fullcf_disp');
            
