@@ -48,14 +48,11 @@ function updateLabelImages(filenames,glandnames,curpath,corediagpath)
                         lblim(corpidx)=7.0;
                     end
                 end
-                writeTIFF(lblim,strcat(curpath,label_file_name),'int8');
-              
-                
-            else
-                lblim=imread(strcat(curpath,label_file_name));
+                writeTIFF(lblim,strcat(curpath,label_file_name));
+                figure(1);
+                imagesc(lblim);
             end
-            figure(1);
-            imagesc(lblim);
+            
         end
     end
     close(h);

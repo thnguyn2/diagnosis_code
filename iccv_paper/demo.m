@@ -4,7 +4,7 @@ clear all;
 close all;
 %Get all the files name and of the glands and raw data
 addpath(strcat(cd(cd('..')),'\support'));
-datapath = 'H:\TMA_cores_and_diagnosis\';
+datapath = 'W:\Tan\Prostate_cancer_diagnosis_data\TMA_cores_and_diagnosis\';
 
 %[filenames,glandnames]=findFileName(datapath);%This function is for the
 %QPI_data folder
@@ -22,7 +22,7 @@ disp('Finding the list of all labels');
 %define the other areas, e.g. scretion, blood vessel, inflamatory cells
 %etc...They are generated from generate_gt_from_core_diagnosis.m in that
 %folder
-%updateLabelImages(filenames,glandnames,strcat(datapath,'label\'),strcat(datapath,'diagnosis_of_vicky\'));
+updateLabelImages(filenames,glandnames,strcat(datapath,'label\'),strcat(datapath,'diagnosis_of_vicky\'));
 
 %% Calculate the phase distributiondist=updatePhaseDistribution(filenames,strcat(datapath,'phase_dist\'),strcat(datapath,'label\'));
 
@@ -37,10 +37,11 @@ updateEnergy(tifflist,strcat(datapath,'texdir\'));%Calculate the response to the
 %updateTextureDirectionDistribution(filenames,strcat(datapath,'label\'),strcat(datapath,'texdir\'),strcat(datapath,'text_dir_hist\'));
 
 %% computing the texton map - This is for texton feature
-%updateTexton(filenames,tifflist,strcat(datapath,'label\'),strcat(datapath,'texdir\'));%Compute the texton map
+ntexton = 1024;
+updateTexton(filenames,tifflist,strcat(datapath,'label\'),strcat(datapath,'texdir\'),ntexton);%Compute the texton map
 
 %% update the histogram of texton distribution in a window
-updateTextonDistribution(tifflist,strcat(datapath,'label\'),strcat(datapath,'texdir\'))
+%updateTextonDistribution(tifflist,strcat(datapath,'label\'),strcat(datapath,'texdir\'))
 
 %% compute the phase variance within a window - for phase variance matrix
 %updatePhaseVariance(filenames,strcat(datapath,'label\'),strcat(datapath,'phase_dist\'))

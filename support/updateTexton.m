@@ -1,4 +1,4 @@
-function [texton]=updateTexton(filenames,tifflist,labelpath,curpath)
+function [texton]=updateTexton(filenames,tifflist,labelpath,curpath,texton_num_array)
 %This function computes the texton of single images and a final texton for
 %all the images. The map of corresponding texton is also included
 %odd and even symmetric filters
@@ -16,7 +16,6 @@ function [texton]=updateTexton(filenames,tifflist,labelpath,curpath)
     nrows = 3072;
     ncols = 3072;
     %Parameters for filter response generator
-    nscales = 5; ninvscales = 5; 
     nspectraperclass = 10000;
     nbands = 20;
 
@@ -24,7 +23,6 @@ function [texton]=updateTexton(filenames,tifflist,labelpath,curpath)
     label_vect = zeros(0,nbands);
  
 %    texton_num_array=round(logspace(log10(5),log10(2000),30)); %This is the number of textons for training, we just train with different k and lets see the compactness
-    texton_num_array = 50; %The best compromising point between speed and accuracy
     
 %     texton_map_over_images = zeros(0,2*(nscales+ninvscales));
 %     texton_label_over_images = zeros(0,2*(nscales+ninvscales));
@@ -45,37 +43,38 @@ function [texton]=updateTexton(filenames,tifflist,labelpath,curpath)
             label_name = cur_file_name(slash_pos(end)+1:dot_pos(1)-1);
             fr_file_name = strcat(label_name,'_lm_fr.mat');%Name of the filter response
             tx_file_name = strcat(label_name,'_texton.mat');
-            label_file_name = strcat(label_name,'_resized.mat');
+            label_file_name = strcat(label_name,'_label.tif');
             disp(['Adding random samples of: ' label_name ' ...']);
-            load(strcat(curpath,fr_file_name),'mr_data');
-            %Load the label image
-            load(strcat(labelpath,label_file_name));
-            glandidx = find(lblim==1);
-            stromaidx = find(lblim==2);
-            lumenidx = find(lblim==0);
-                
-            nglandpix = length(glandidx); %Get number of gland and stroma pixs
-            nstromapix = length(stromaidx);
-            nlumenpix = length(lumenidx);
-            selectedglandidx = randperm(nglandpix);
-            selectedstromaidx = randperm(nstromapix);
-            selectedlumenidx = randperm(nlumenpix);
-            gland_subset=mr_data(...
-            glandidx(selectedglandidx(1:nspectraperclass)),1:nbands);
-            stroma_subset=mr_data(...
-            stromaidx(selectedstromaidx(1:nspectraperclass)),1:nbands);
-            lumen_subset=mr_data(...
-            lumenidx(selectedlumenidx(1:nspectraperclass)),1:nbands);                
-                          
-            filter_response(end+1:end+nspectraperclass,:)=lumen_subset;
-            filter_response(end+1:end+nspectraperclass,:)=gland_subset;
-            filter_response(end+1:end+nspectraperclass,:)=stroma_subset;
-            label_vect(end+1:end+nspectraperclass)=0;
-            label_vect(end+1:end+nspectraperclass)=1;
-            label_vect(end+1:end+nspectraperclass)=2;
-                %save(strcat(curpath,tx_file_name),'gland_subset','stroma_subset','lumen_subset');
-                
-                
+            if (exist(strcat(labelpath,label_file_name),'file'))
+                load(strcat(curpath,fr_file_name),'mr_data');
+                %Load the label image
+                lblim=imread(strcat(labelpath,label_file_name));
+                glandidx = find(lblim==1);
+                stromaidx = find(lblim==2);
+                lumenidx = find(lblim==0);
+
+                nglandpix = length(glandidx); %Get number of gland and stroma pixs
+                nstromapix = length(stromaidx);
+                nlumenpix = length(lumenidx);
+                selectedglandidx = randperm(nglandpix);
+                selectedstromaidx = randperm(nstromapix);
+                selectedlumenidx = randperm(nlumenpix);
+                gland_subset=mr_data(...
+                glandidx(selectedglandidx(1:nspectraperclass)),1:nbands);
+                stroma_subset=mr_data(...
+                stromaidx(selectedstromaidx(1:nspectraperclass)),1:nbands);
+                lumen_subset=mr_data(...
+                lumenidx(selectedlumenidx(1:nspectraperclass)),1:nbands);                
+
+                filter_response(end+1:end+nspectraperclass,:)=lumen_subset;
+                filter_response(end+1:end+nspectraperclass,:)=gland_subset;
+                filter_response(end+1:end+nspectraperclass,:)=stroma_subset;
+                label_vect(end+1:end+nspectraperclass)=0;
+                label_vect(end+1:end+nspectraperclass)=1;
+                label_vect(end+1:end+nspectraperclass)=2;
+                    %save(strcat(curpath,tx_file_name),'gland_subset','stroma_subset','lumen_subset');
+
+            end    
        end
      end
      save(strcat(curpath,'texton_data_before_kmeans.mat'),'filter_response','label_vect');
@@ -87,33 +86,24 @@ function [texton]=updateTexton(filenames,tifflist,labelpath,curpath)
     disp('Finding cluster centers...');
     retrain=0;
     computing_platform=1; %OpenCV-Mex functions
-    nk = length(texton_num_array); %Number of k values
-    compactness_arr = zeros(nk,1);
-    %form filter response over images
-    if ((~exist('texton_data_before_kmeans.mat','file'))||(retrain==1))
+    texton_num = texton_num_array(1);
+    k_means_file_name = strcat(curpath,'kmeans_res_',num2str(texton_num),'_clusters.mat');
+                  
+    if ((~exist(k_means_file_name,'file'))||(retrain==1))
         load(strcat(curpath,'texton_data_before_kmeans.mat'));
-        for kidx=1:nk
-            tic
-            texton_num = texton_num_array(kidx);
-            disp(['Working on k= ' num2str(texton_num) ', ' num2str(round(nk+1-kidx)) ' values to go']);
-            k_means_file_name = strcat(curpath,'kmeans_res_',num2str(texton_num),'_clusters.mat');
-            if (computing_platform==0) %Matlab k-means, which is 20x-60x slower than OpenCVMex k-means
+           disp('Updating the texton values');
+           if (computing_platform==0) %Matlab k-means, which is 20x-60x slower than OpenCVMex k-means
                 opts = statset('Display','iter', 'MaxIter',3000);
-                
-                [newidxmap,texton,compactness]=kmeans(filter_response, texton_num,'Options',opts,'Replicates',1,'Start','sample');
+                [~,texton,~]=kmeans(filter_response, texton_num,'Options',opts,'Replicates',1,'Start','sample');
                 
             else
-                [newidxmap, texton,compactness] = kmeans(filter_response,texton_num,'Attempts',10); %Compactness is the empirical error
+                [~, texton,~] = kmeans(filter_response,texton_num,'Attempts',10); %Compactness is the empirical error
                
             end
-            compactness_arr(kidx)=compactness;
-            figure(1);
-            plot(texton_num_array(1:kidx),compactness_arr(1:kidx));
-            title('Empirical vs k');
-            save(k_means_file_name,'texton','newidxmap','compactness');
+            save(k_means_file_name,'texton');
             timeElapse= toc
             disp(['Training time: ' num2str(timeElapse), ' (s)']);
-        end
+        
     end
   
     %Load the dictionary of texton and find the best matching index for

@@ -59,7 +59,7 @@ function [texton,texton_map,filters,f_res,texton_diff]=texton_compute(im,k,f_typ
             end
             
             for filter_idx=1:nfilters
-                disp(['Working at scale... ' num2str(filter_idx)]);
+                %disp(['Working at scale... ' num2str(filter_idx)]);
                 
                 if (computing_platform==0)
                     %Filterting with MATLAB built-in instruction
