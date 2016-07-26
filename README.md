@@ -20,6 +20,7 @@ After cloning the source code, open iccv_paper/demo.m to begin.
 
 #Source code organization
 The project tree is as follows:
+
     * Folders:
 
 	iccv_paper/: a folder containing working version of the source code
@@ -27,6 +28,14 @@ The project tree is as follows:
 	support/: a folder with supporting function
 
     * Files:
+	
+	The following files in the repo. folders are just for summarzing the results and new ideas. They are not very useful though. I will clean them up in a near future
+	
+	EM for diagnosis.jnt: a journal file containing Tan's derivation on how to train a hierachical tree to learn the structure of the multi-class diagnosis problem.
+	generate_gt_from_code_diagnosis.m: [TBA]
+	truncate_segmented_map_with_from_code_label.m: [TBA]
+	Fuzzy map for feature review.pptx: a summary of the class likelihood produced by the classifier
+	Note on the TMA2B data.txt: what i learnt from a discussion with Dr. Sridharan at UC Davis
 	README.md: this file	
 
 
