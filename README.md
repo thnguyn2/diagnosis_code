@@ -65,7 +65,7 @@ The QPI data is required to run the code. Please contact our lab director, Dr. G
 
  * TMA2D_all_cores\: all SLIM images of all cores in the TMA.
 
- * texdir\: contains [corename]_lm_fr.mat: Leung-Malik filter response, [corename]_texton_index_[zz]_map.tif: texton index map where zz is the number of texton_map.tif: texton index map where zz is the number of texton. If [zz]='', the number of texton is 50. [corename]_texton_hist_[ww].mat: histogram of texton index data where ww is the window size for computing. kmeans_res_[zz]_clusters.mat: coordinates of textons where zz is the number of textons.
+ * texdir\: contains [corename]\_lm_fr.mat: Leung-Malik filters response, [corename]_texton_index\_[zz]_map.tif: texton index map where zz is the number of texton. If [zz]='', the number of texton is 50. [corename]_texton_hist_[ww].mat: histogram of texton index data where ww is the window size for computing. kmeans_res_[zz]_clusters.mat: coordinates of textons where zz is the number of textons.
  
  * Verified_diagnosis_results: manual segmentaion with biopsy diagnosis, verified by Shamira.
 
