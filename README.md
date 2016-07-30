@@ -57,7 +57,9 @@ The following files are just for summarzing the results and new ideas. They are 
 
 
 #Data organization
-The QPI data is required to run the code. Please contact our lab director, Dr. Gabriel Popescu at gpopescu@illinois.edu if you want to obtain the data and run the code with it,
+The QPI data is required to run the code. Please contact our lab director, Dr. Gabriel Popescu at gpopescu@illinois.edu if you want to obtain the data and run the code with it. On the ozymandias server, the data can be found at raid6\Tan\Prostate_cancer_diagnosis_data\TMA_code_and_diagnosis\. The structure of this folder is as follows
+  
+    #dx+y: where x, y in {2,3,4,5}. A folder contain the raw QPI image, e.g., A19.tif, 3x downsampled QPI image, e.g., A19_small.tif, manual segmentation results, e.g., A19_seg_gt.tif, A19_seg_gt_3072.tif, A19_seg_gt_3072_hf.tif, final segmentation result, A19_seg_multi_res_3072_strict_hf.tif. Note that "hf" stands for hole-filling where the segmentation results have been post-process to remove holes inside the gland and stroma likelihood, e.g., A19_seg_ws[zz]_fuzzy.tif. Herezz is the size of the window in which the histogram of texton is computed. 
 
 #How to use the code
 

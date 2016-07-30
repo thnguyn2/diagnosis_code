@@ -16,7 +16,7 @@ function [filenames,glandnames,diagres,alltiffilelist]=findFileNameFromROIs(allc
      %Look for all file names
     filenames =  dir(strcat(roipath,'*.zip'));
     nfiles = length(filenames);
-    filelist = cell(0,1);
+    filelist = cell(0,1);I
     gradelistnopath = cell(0,1);
     for filenameidx=1:nfiles
         filelist{end+1,1} =strcat(roipath,filenames(filenameidx,1).name);
