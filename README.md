@@ -59,7 +59,15 @@ The following files are just for summarzing the results and new ideas. They are 
 #Data organization
 The QPI data is required to run the code. Please contact our lab director, Dr. Gabriel Popescu at gpopescu@illinois.edu if you want to obtain the data and run the code with it. On the ozymandias server, the data can be found at raid6\Tan\Prostate_cancer_diagnosis_data\TMA_code_and_diagnosis\. The structure of this folder is as follows
   
-    #dx+y: where x, y in {2,3,4,5}. A folder contain the raw QPI image, e.g., A19.tif, 3x downsampled QPI image, e.g., A19_small.tif, manual segmentation results, e.g., A19_seg_gt.tif, A19_seg_gt_3072.tif, A19_seg_gt_3072_hf.tif, final segmentation result, A19_seg_multi_res_3072_strict_hf.tif. Note that "hf" stands for hole-filling where the segmentation results have been post-process to remove holes inside the gland and stroma likelihood, e.g., A19_seg_ws[zz]_fuzzy.tif. Herezz is the size of the window in which the histogram of texton is computed. 
+ * d[x]+[y]\: where x, y in {2,3,4,5}. A folder contains all the data for the diagnosis group with Gleason score [x]+[y]. Inside this folder, you can find the raw QPI image, e.g., A19.tif, 3x downsampled QPI image, e.g., A19_small.tif, manual segmentation results, e.g., A19_seg_gt.tif, A19_seg_gt_3072.tif, A19_seg_gt_3072_hf.tif, final segmentation result, A19_seg_multi_res_3072_strict_hf.tif. Note that "hf" stands for hole-filling where the segmentation results have been post-process to remove holes inside the gland and stroma likelihood, e.g., A19_seg_ws[zz]_fuzzy.tif. Herezz is the size of the window in which the histogram of texton is computed. 
+
+ * dBPH\, dHGPIN\, dNormal\: similar to d[x]+[y]. They store data for the BPH, HGPIN and benign group.
+
+ * TMA2D_all_cores\: all SLIM images of all cores in the TMA.
+
+ * texdir\: contains [corename]_lm_fr.mat: Leung-Malik filter response, [corename]_texton_index_[zz]_map.tif: texton index map where zz is the number of texton_map.tif: texton index map where zz is the number of texton. If [zz]='', the number of texton is 50. [corename]_texton_hist_[ww].mat: histogram of texton index data where ww is the window size for computing. kmeans_res_[zz]_clusters.mat: coordinates of textons where zz is the number of textons.
+ 
+ * Verified_diagnosis_results: manual segmentaion with biopsy diagnosis, verified by Shamira.
 
 #How to use the code
 
